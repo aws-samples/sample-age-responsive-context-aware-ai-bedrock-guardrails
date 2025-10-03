@@ -400,8 +400,8 @@ This library is licensed under the MIT-0 License. See the LICENSE file.
 
 ---
 
-## 👨‍💻 Author
+## Author
 
-**Pradip Pandey**  
-*Lead Consultant - Amazon Web Services*
+Pradip Pandey 
+Lead Consultant - Amazon Web Services
 ---
