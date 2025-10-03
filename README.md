@@ -403,8 +403,5 @@ This library is licensed under the MIT-0 License. See the LICENSE file.
 ## 👨‍💻 Author
 
 **Pradip Pandey**  
-*Lead Consultant - AWS*
-
-Specializing in AI/ML solutions, serverless architectures, and production-ready AWS implementations.
-
+*Lead Consultant - Amazon Web Services*
 ---
