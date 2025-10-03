@@ -55,7 +55,8 @@ age-responsive-context-aware-ai-bedrock-guardrails/
 ```
 ##  Architecture diagrams
 
-![image](/uploads/fc20a819a0577e0f4dada9a53d16ea55/image.png)
+<img width="1908" height="812" alt="image" src="https://github.com/user-attachments/assets/087c9ca4-040c-4864-8cf6-96b6907d2449" />
+
 
 ---
 
@@ -389,4 +390,10 @@ const response = await fetch('/api/ask', {
 
 ---
 
-**Built with AWS Bedrock, Claude 3 Sonnet, and production-ready security practices.**
+## Security
+
+See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+
+## License
+
+This library is licensed under the MIT-0 License. See the LICENSE file.
