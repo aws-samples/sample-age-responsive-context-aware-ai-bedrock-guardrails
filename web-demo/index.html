@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Age-Responsive AI Demo - Production Integration</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="demo-container">
+        <!-- Header -->
+        <header class="demo-header">
+            <div class="logo">
+                <i class="fas fa-brain"></i>
+                <h1>Age-Responsive AI</h1>
+            </div>
+            <div class="demo-badge">Production Demo</div>
+        </header>
+
+        <!-- User Selector -->
+        <div class="user-selector">
+            <h3><i class="fas fa-users"></i> Select User Profile</h3>
+            <div class="user-cards">
+                <div class="user-card" data-user="student-123" onclick="selectUser('student-123')">
+                    <div class="user-avatar teen">👨🎓</div>
+                    <div class="user-info">
+                        <h4>Alex (Student)</h4>
+                        <p>Age: 13 • 8th Grade</p>
+                        <p>Industry: Education</p>
+                        <span class="user-badge teen">Teen</span>
+                    </div>
+                </div>
+                
+                <div class="user-card" data-user="teacher-456" onclick="selectUser('teacher-456')">
+                    <div class="user-avatar adult">👩🏫</div>
+                    <div class="user-info">
+                        <h4>Sarah (Teacher)</h4>
+                        <p>Age: 39 • Math Teacher</p>
+                        <p>Industry: Education</p>
+                        <span class="user-badge adult">Adult</span>
+                    </div>
+                </div>
+                
+                <div class="user-card" data-user="patient-789" onclick="selectUser('patient-789')">
+                    <div class="user-avatar adult">👨⚕️</div>
+                    <div class="user-info">
+                        <h4>John (Patient)</h4>
+                        <p>Age: 49 • Patient</p>
+                        <p>Industry: Healthcare</p>
+                        <span class="user-badge adult">Adult</span>
+                    </div>
+                </div>
+                
+                <div class="user-card" data-user="provider-101" onclick="selectUser('provider-101')">
+                    <div class="user-avatar adult">👨⚕️</div>
+                    <div class="user-info">
+                        <h4>Dr. Smith (Doctor)</h4>
+                        <p>Age: 44 • Cardiologist</p>
+                        <p>Industry: Healthcare</p>
+                        <span class="user-badge adult">Provider</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Interface -->
+        <div class="chat-container">
+            <div class="chat-header">
+                <div class="current-user">
+                    <span id="current-user-name">Select a user to start chatting</span>
+                    <span id="current-user-context"></span>
+                </div>
+                <div class="connection-status">
+                    <span id="connection-status">🔴 Not Connected</span>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chat-messages">
+                <div class="welcome-message">
+                    <h3>🚀 Welcome to Age-Responsive AI Demo</h3>
+                    <p>Select a user profile above and ask the same question to see how responses adapt based on:</p>
+                    <ul>
+                        <li><strong>Age:</strong> Teen vs Adult language complexity</li>
+                        <li><strong>Role:</strong> Student vs Teacher vs Patient vs Doctor</li>
+                        <li><strong>Industry:</strong> Education vs Healthcare context</li>
+                        <li><strong>Device:</strong> Mobile vs Desktop optimization</li>
+                    </ul>
+                    <div class="sample-questions">
+                        <h4>Try these questions:</h4>
+                        <div class="question-chips">
+                            <span class="question-chip" onclick="askQuestion('What is DNA?')">What is DNA?</span>
+                            <span class="question-chip" onclick="askQuestion('Explain photosynthesis')">Explain photosynthesis</span>
+                            <span class="question-chip" onclick="askQuestion('What causes heart disease?')">What causes heart disease?</span>
+                            <span class="question-chip" onclick="askQuestion('How do I solve quadratic equations?')">How do I solve quadratic equations?</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <div class="input-group">
+                    <input type="text" id="message-input" placeholder="Ask a question to see age-responsive AI in action..." disabled>
+                    <button id="send-button" onclick="sendMessage()" disabled>
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                <div class="demo-controls">
+                    <button onclick="clearChat()" class="control-btn">
+                        <i class="fas fa-trash"></i> Clear Chat
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
