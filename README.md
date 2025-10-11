@@ -93,7 +93,9 @@ age-responsive-context-aware-ai-bedrock-guardrails/
 ```
 ##  Architecture diagrams
 
-![image](/uploads/6e070a470f5c662360420903f2490260/image.png)
+<img width="936" height="468" alt="Screenshot 2025-10-11 at 7 10 25 PM" src="https://github.com/user-attachments/assets/70d942c7-aa05-4f92-aca2-fb541f52ae72" />
+
+
 ---
 
 ##  Architecture Workflow
@@ -229,7 +231,8 @@ cd web-demo
 
 #### **Teacher Response (Age 39)**
 *Professional, pedagogical explanation with teaching strategies*
-![Uploading Screenshot 2025-10-11 at 6.31.36 PM.png…]()
+<img width="1296" height="927" alt="Screenshot 2025-10-11 at 6 31 36 PM" src="https://github.com/user-attachments/assets/f903113e-deea-4d17-9688-d0bfd5a02c2d" />
+
 
 
 ---
