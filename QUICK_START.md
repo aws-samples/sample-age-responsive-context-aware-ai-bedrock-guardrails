@@ -18,7 +18,7 @@ production/
 │   ├── index.html          # Demo interface
 │   ├── style.css           # Modern UI styling
 │   ├── script.js           # Frontend logic
-│   └── startemo.sh         # Auto-setup demo script
+│   └── start_demo.sh      # Auto-setup demo script
 ├── 📄 deploy.sh             # One-command AWS deployment
 ├── 📄 cleanup.sh            # Complete cleanup script
 ├── 📄 QUICK_START.md        # This file - getting started guide
@@ -44,23 +44,28 @@ This is the **production-ready version** with:
 
 ## Prerequisites
 
-### 1. AWS Services Setup
+### 1. AWS Account Setup
 ```bash
-# Enable required AWS services in your account:
-# - Amazon Bedrock (Claude 3 Sonnet model access)
-# - DynamoDB
-# - Lambda
-# - API Gateway
-# - IAM
-# - CloudWatch
+# Enable Amazon Bedrock model access (only manual step required):
+# 1. Go to AWS Console → Amazon Bedrock → Model Access
+# 2. Request access to Claude 3 Sonnet model
+# 3. Wait for approval (usually instant)
+
+# All other services (DynamoDB, Lambda, API Gateway, etc.) 
+# are created automatically by Terraform
 ```
 
-### 2. Python Dependencies
+### 2. Required Tools
 ```bash
-# Create virtual environment (required on macOS)
-python3 -m venv venv
-source venv/bin/activate
-pip install PyJWT boto3
+# Install Terraform (if not already installed)
+# macOS: brew install terraform
+# Linux: Download from terraform.io
+# Windows: Download from terraform.io
+
+# Verify installations
+aws --version
+terraform --version
+python3 --version
 ```
 
 ### 3. AWS CLI Configuration
@@ -70,10 +75,25 @@ aws configure
 ```
 
 ## Deployment
-cd production
 
-### One-Command Deployment
+### 1. Clone Repository
 ```bash
+# Clone the repository
+git clone <REPOSITORY_URL>
+cd bedrock-guardrails-demo
+```
+
+### 2. Setup Virtual Environment
+```bash
+# Create Python virtual environment in project directory
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install PyJWT boto3
+```
+
+### 3. One-Command Deployment
+```bash
+# Deploy all AWS infrastructure
 ./deploy.sh
 ```
 
@@ -83,6 +103,41 @@ This deploys:
 - **Audit Logging System**
 - **JWT Authentication**
 - **Industry-Specific AI Prompts**
+
+### 4. Start Web Demo (Automatic Setup)
+```bash
+# Start web demo with automatic configuration
+cd web-demo
+./start_demo.sh
+```
+
+This automatically:
+- ✅ Gets API URL from Terraform
+- ✅ Generates secure JWT tokens with proper validation
+- ✅ Updates config.js with secure authentication
+- ✅ Starts web server on http://localhost:8080
+- ✅ Opens demo in browser
+
+**Demo URL**: http://localhost:8080
+
+### 5. Test the Demo
+1. **Open browser** → http://localhost:8080
+2. **Select user** → Click Alex (Student), Sarah (Teacher), etc.
+3. **Ask questions** → Type "What is DNA?" or click sample questions
+4. **See responses** → Notice different answers for different users
+
+### 6. Stop Demo
+```bash
+# Stop web demo
+cd web-demo
+./stop_demo.sh
+```
+
+**🔐 Secure Authentication Notes:**
+- **Dynamic Tokens**: Web UI generates secure JWT tokens automatically
+- **No Hardcoded Secrets**: All tokens created at runtime with 1-hour expiry
+- **Demo Mode**: Fallback tokens for testing (clearly marked as demo-only)
+- **Production Ready**: Easy to integrate with real authentication systems
 
 ## Industry Use Cases
 
@@ -108,44 +163,32 @@ This deploys:
 - Patient vs provider appropriate content
 - Medical ethics compliance
 
-## Testing Production API
+## Testing the Solution
 
-### 1. Generate JWT Token
+### Method 1: Web Demo (Recommended)
 ```bash
-# Activate virtual environment
-cd /Users/kpradipp/Desktop/untitled\ folder\ 2/production
-python3 -m venv venv
-source venv/bin/activate
+# Already started in step 3 above
+# Just open http://localhost:8080 and test different users
+```
 
-# Install PyJWT
-pip install PyJWT
+### Method 2: Direct API Testing (Optional)
+```bash
+# Set JWT secret to match Lambda function
+export JWT_SECRET="change-this-in-production-use-secrets-manager"
 
-# Generate token for testing
+# Activate virtual environment and generate JWT token
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 cd utils
-python3 generate_jwt.py student-123
-```
+TOKEN=$(python3 generate_jwt.py student-123 2>/dev/null | grep "Token: " | cut -d' ' -f2)
 
-
-### 2. Test with cURL
+# Get your API URL
 cd ../terraform
-terraform output api_url
-```bash
-# Get your API URL from terraform output
-API_URL=$(cd terraform && terraform output -raw api_url)
+API_URL=$(terraform output -raw api_url)
 
-```bash
-# Test with JWT token (replace <TOKEN> with actual token from step 1)
-# Test with JWT token
-curl -X POST $API_URL \
+# Test with cURL
+curl -X POST "$API_URL" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <JWT_TOKEN_FROM_STEP_1>" \
-  -d '{"query": "Explain photosynthesis"}'
-```
-## Example command- 
-
-curl -X POST "https://s2sthic9gd.execute-api.us-east-1.amazonaws.com/prod/ask" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <TOKEN>" \
+  -H "Authorization: Bearer $TOKEN" \
   -d '{"query": "What is DNA?"}'
 ```
 
@@ -191,35 +234,34 @@ curl -X POST "https://s2sthic9gd.execute-api.us-east-1.amazonaws.com/prod/ask" \
 
 ## Sample Test Scenarios
 
-### Education Use Case
+### Via Web Demo (Easy)
+1. **Education Test**: Select "Alex (Student)" → Ask "What is DNA?"
+2. **Healthcare Test**: Select "John (Patient)" → Ask "What causes heart disease?"
+3. **Compare Responses**: Select "Dr. Smith (Doctor)" → Ask same questions
+4. **See Differences**: Notice how responses adapt to user context
+
+### Via API (Advanced)
 ```bash
-# Generate student token
-source venv/bin/activate
+# Set JWT secret and activate virtual environment
+export JWT_SECRET="change-this-in-production-use-secrets-manager"
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Test education use case
 cd utils
-python3 generate_jwt.py student-123
+STUDENT_TOKEN=$(python3 generate_jwt.py student-123 2>/dev/null | grep "Token: " | cut -d' ' -f2)
+API_URL=$(cd ../terraform && terraform output -raw api_url)
 
-# Test educational query
-
-curl -X POST "https://s2sthic9gd.execute-api.us-east-1.amazonaws.com/prod/ask" \
+curl -X POST "$API_URL" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <TOKEN>" \
+  -H "Authorization: Bearer $STUDENT_TOKEN" \
   -d '{"query": "How do I solve quadratic equations?"}'
 
-# Expected: Grade-appropriate math explanation
-```
-
-### Healthcare Use Case  
-```bash
-# Generate patient token
-python3 generate_jwt.py patient-789
-
-# Test health query
-curl -X POST "https://s2sthic9gd.execute-api.us-east-1.amazonaws.com/prod/ask" \
+# Test healthcare use case
+PATIENT_TOKEN=$(python3 generate_jwt.py patient-789)
+curl -X POST "$API_URL" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <TOKEN>" \
+  -H "Authorization: Bearer $PATIENT_TOKEN" \
   -d '{"query": "What should I know about heart health?"}'
-
-# Expected: Patient-appropriate health information
 ```
 
 ## Database Schema
@@ -279,6 +321,25 @@ curl -X POST "https://s2sthic9gd.execute-api.us-east-1.amazonaws.com/prod/ask" \
 - API Gateway: $3-15 (per million requests)
 - Bedrock: $20-100 (depends on token usage)
 - **Total: $38-190/month** for moderate usage
+
+## Complete Cleanup
+
+```bash
+# Remove all AWS resources and local files
+./cleanup.sh
+```
+
+## Quick Summary
+
+**To deploy and test this solution:**
+
+1. **Prerequisites**: AWS CLI configured, Python 3.11+, Terraform installed
+2. **Deploy**: `./deploy.sh`
+3. **Test**: `cd web-demo && ./start_demo.sh`
+4. **Use**: Open http://localhost:8080, select users, ask questions
+5. **Cleanup**: `./cleanup.sh`
+
+**That's it!** The solution is now deployed and ready for testing.*Total: $38-190/month** for moderate usage
 
 ## Files Created
 

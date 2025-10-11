@@ -25,7 +25,8 @@ def extract_user_context(event):
     
     # 1. Get user from JWT token
     auth_token = event['headers'].get('Authorization', '').replace('Bearer ', '')
-    user_claims = jwt.decode(auth_token, verify=False)  # Verify in production
+    jwt_secret = os.environ.get('JWT_SECRET', 'demo-secret-key')
+    user_claims = jwt.decode(auth_token, jwt_secret, algorithms=['HS256'])
     
     # 2. Age detection from user profile
     birth_date = get_user_birth_date(user_claims['user_id'])
@@ -92,7 +93,7 @@ def healthcare_context(user_id):
     patient = get_patient_record(user_id)
     return {
         'age': calculate_age_group(patient.birth_date),
-        'role': 'patient' if patient.is_patient else 'provider',
+        'role': 'patient' if patient.is_patient() else 'provider',
         'medical_restrictions': patient.content_restrictions,
         'language_preference': patient.preferred_language
     }

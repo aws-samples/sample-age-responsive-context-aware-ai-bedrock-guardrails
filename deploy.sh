@@ -34,8 +34,23 @@ AWS_REGION=$(aws configure get region || echo "us-east-1")
 echo "🌍 Using AWS region: $AWS_REGION"
 echo "ℹ️  Note: Bedrock is available in us-east-1, us-west-2, eu-west-1, ap-southeast-1, ap-northeast-1"
 
+# Build Lambda deployment package
+echo "📦 Building Lambda deployment package..."
+cd lambda
+
+# Create package directory
+mkdir -p package
+
+# Install Python dependencies
+echo "📥 Installing Python dependencies..."
+pip install -r requirements.txt -t package/ --quiet
+
+# Copy Lambda function code
+echo "📋 Copying Lambda function code..."
+cp *.py package/
+
 # Navigate to terraform directory
-cd terraform
+cd ../terraform
 
 # Initialize Terraform
 echo "🔧 Initializing Terraform..."

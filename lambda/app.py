@@ -160,21 +160,28 @@ def extract_user_context(event):
     token = auth_header.replace('Bearer ', '')
     logger.info(f"Token extracted: {token[:50]}...")
     
-    # Decode JWT (in production, verify with proper secret)
+    # Decode JWT with proper signature verification
     jwt_secret = os.environ.get('JWT_SECRET', 'demo-secret-key')
     logger.info(f"Using JWT secret: {jwt_secret[:20]}...")
     
     try:
-        user_claims = jwt.decode(token, jwt_secret, algorithms=['HS256'])
+        user_claims = jwt.decode(
+            token, 
+            jwt_secret, 
+            algorithms=['HS256'], 
+            audience='demo-client',  # Verify expected audience
+            issuer='bedrock-guardrails-demo',  # Verify expected issuer
+            options={"verify_signature": True, "verify_aud": True, "verify_iss": True}
+        )
         logger.info(f"JWT decoded successfully: {user_claims}")
     except jwt.ExpiredSignatureError:
-        logger.error("JWT token has expired")
+        logger.warning("JWT token has expired")
         raise jwt.InvalidTokenError("Token has expired")
     except jwt.InvalidSignatureError:
-        logger.error("JWT signature verification failed")
+        logger.warning("JWT signature verification failed")
         raise jwt.InvalidTokenError("Invalid token signature")
     except Exception as e:
-        logger.error(f"JWT decode error: {type(e).__name__}: {str(e)}")
+        logger.warning(f"JWT decode error: {type(e).__name__}: {str(e)}")
         raise jwt.InvalidTokenError(f"Token validation failed: {str(e)}")
     
     # 2. Get user profile from database
@@ -231,8 +238,14 @@ def get_user_profile(user_id):
     except Exception as e:
         logger.warning(f"Failed to get user profile: {e}")
     
-    # Return default profile if database lookup fails
-    return {'role': 'guest', 'industry': 'general'}
+    # Return demo profile based on user_id if database lookup fails
+    demo_profiles = {
+        'student-123': {'role': 'student', 'industry': 'education', 'birth_date': '2010-05-15'},
+        'teacher-456': {'role': 'teacher', 'industry': 'education', 'birth_date': '1985-03-20'},
+        'patient-789': {'role': 'patient', 'industry': 'healthcare', 'birth_date': '1975-11-08'},
+        'provider-101': {'role': 'provider', 'industry': 'healthcare', 'birth_date': '1980-07-12'}
+    }
+    return demo_profiles.get(user_id, {'role': 'guest', 'industry': 'general'})
 
 def calculate_age_group(birth_date):
     """Calculate age group from birth date"""

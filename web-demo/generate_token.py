@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 import json
 import base64
+import os
 from datetime import datetime, timedelta
 
-def create_jwt_token(user_id, secret="production-jwt-secret-key-change-in-production"):
+def create_jwt_token(user_id, secret=None):
+    if secret is None:
+        secret = os.environ.get('JWT_SECRET', 'default-dev-key-change-in-production')
     """Create a simple JWT token without external dependencies"""
     
     # Header

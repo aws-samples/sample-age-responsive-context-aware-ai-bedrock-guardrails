@@ -1,6 +1,5 @@
 let currentUser = null;
 let apiUrl = '';
-let userTokens = {};
 
 // Initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
@@ -9,9 +8,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load config
     if (window.DEMO_CONFIG && window.DEMO_CONFIG.generated) {
         apiUrl = window.DEMO_CONFIG.apiEndpoint;
-        userTokens = window.DEMO_CONFIG.tokens;
         console.log('✅ Config loaded:', apiUrl);
-        console.log('✅ Tokens loaded:', Object.keys(userTokens));
+        console.log('🔒 Using secure token manager');
         updateConnectionStatus();
     } else {
         console.error('❌ Config not found');
@@ -71,8 +69,8 @@ function getUserInfo(userId) {
 
 function updateConnectionStatus() {
     const status = document.getElementById('connection-status');
-    if (apiUrl && currentUser && userTokens[currentUser]) {
-        status.textContent = '🟢 Connected';
+    if (apiUrl && currentUser) {
+        status.textContent = '🟢 Connected (Secure)';
         status.style.color = '#4ecdc4';
     } else if (apiUrl) {
         status.textContent = '🟡 API Set';
@@ -97,9 +95,16 @@ async function sendMessage() {
         return;
     }
     
-    if (!userTokens[currentUser]) {
-        alert(`No authentication token available for ${currentUser}!`);
-        console.error('Available tokens:', Object.keys(userTokens));
+    // Get secure token
+    let token;
+    try {
+        token = await window.tokenManager.getToken(currentUser);
+        if (!token) {
+            throw new Error('Failed to generate secure token');
+        }
+    } catch (error) {
+        alert(`Authentication failed: ${error.message}`);
+        console.error('Token generation error:', error);
         return;
     }
     
@@ -118,7 +123,8 @@ async function sendMessage() {
             mode: 'cors',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${userTokens[currentUser]}`
+                'Authorization': `Bearer ${token}`,
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: JSON.stringify({ query: message })
         });
@@ -163,7 +169,14 @@ function addMessage(type, content, isHTML = false, metadata = null) {
     contentDiv.className = 'message-content';
     
     if (isHTML) {
-        contentDiv.innerHTML = content;
+        // Safely handle HTML content to prevent XSS
+        if (content.includes('<div class="loading"></div>')) {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading';
+            contentDiv.appendChild(loadingDiv);
+        } else {
+            contentDiv.textContent = content;
+        }
     } else {
         contentDiv.textContent = content;
     }
@@ -175,10 +188,22 @@ function addMessage(type, content, isHTML = false, metadata = null) {
     if (metadata) {
         const metadataDiv = document.createElement('div');
         metadataDiv.className = 'message-metadata';
-        metadataDiv.innerHTML = `
-            <strong>Context:</strong> ${metadata.role} • ${metadata.age} • ${metadata.industry} • ${metadata.device}
-            <br><strong>Guardrails:</strong> ${metadata.guardrail_applied ? '✅ Active' : '❌ Inactive'}
-        `;
+        // Safely create metadata content
+        const contextText = document.createTextNode(`Context: ${metadata.role} • ${metadata.age} • ${metadata.industry} • ${metadata.device}`);
+        const contextStrong = document.createElement('strong');
+        contextStrong.textContent = 'Context: ';
+        
+        const guardrailText = document.createTextNode(`Guardrails: ${metadata.guardrail_applied ? '✅ Active' : '❌ Inactive'}`);
+        const guardrailStrong = document.createElement('strong');
+        guardrailStrong.textContent = 'Guardrails: ';
+        
+        const br = document.createElement('br');
+        
+        metadataDiv.appendChild(contextStrong);
+        metadataDiv.appendChild(document.createTextNode(`${metadata.role} • ${metadata.age} • ${metadata.industry} • ${metadata.device}`));
+        metadataDiv.appendChild(br);
+        metadataDiv.appendChild(guardrailStrong);
+        metadataDiv.appendChild(document.createTextNode(`${metadata.guardrail_applied ? '✅ Active' : '❌ Inactive'}`));
         messageDiv.appendChild(metadataDiv);
     }
 

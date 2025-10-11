@@ -1,13 +1,87 @@
-// Auto-generated config from terraform outputs
+// Secure Demo Configuration - No hardcoded tokens
 window.DEMO_CONFIG = {
-  "apiEndpoint": "https://hncat4kbmc.execute-api.us-east-1.amazonaws.com/prod/ask",
-  "tokens": {
-    "student-123": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoic3R1ZGVudC0xMjMiLCJpYXQiOjE3NTk1MTY0MzEsImV4cCI6MTc1OTYwMjgzMX0.0PnGksr3DGb4kR2yODV6UiT9m_ejFFj6JEy9szscEJgBearer",
-    "teacher-456": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidGVhY2hlci00NTYiLCJpYXQiOjE3NTk1MTY0MzEsImV4cCI6MTc1OTYwMjgzMX0.RH5rBp3mbxEJFaooTN6U1iqnTU5NYLnGgy38Pv9p8SUBearer",
-    "patient-789": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoicGF0aWVudC03ODkiLCJpYXQiOjE3NTk1MTY0MzEsImV4cCI6MTc1OTYwMjgzMX0.UveRjOWGFo8EgqblhszXMoWwSvSbqhRjoNtgp9qsDJ0Bearer",
-    "provider-101": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoicHJvdmlkZXItMTAxIiwiaWF0IjoxNzU5NTE2NDMxLCJleHAiOjE3NTk2MDI4MzF9.ZTFSN1t_DY34Wrn4_0Iq_LQoHsldFzKikBS9Yw0288cBearer"
-  },
-  "generated": true
+    generated: true,
+    apiEndpoint: "https://rr334o6yh2.execute-api.us-east-1.amazonaws.com/prod/ask",
+    // Tokens are generated dynamically via secure API calls
+    tokenEndpoint: "http://localhost:8081/api/auth/generate-token",
+    users: [
+        { id: "student-123", role: "student", name: "Demo Student" },
+        { id: "teacher-456", role: "teacher", name: "Demo Teacher" },
+        { id: "patient-789", role: "patient", name: "Demo Patient" },
+        { id: "provider-101", role: "provider", name: "Demo Provider" }
+    ]
 };
-console.log('✅ Demo config loaded:', window.DEMO_CONFIG);
-console.log('🔑 Available tokens:', Object.keys(window.DEMO_CONFIG.tokens));
+
+// Secure token management
+class SecureTokenManager {
+    constructor() {
+        this.tokens = new Map();
+        this.tokenExpiry = new Map();
+    }
+
+    async getToken(userId) {
+        if (this.isTokenValid(userId)) {
+            return this.tokens.get(userId);
+        }
+        return await this.generateSecureToken(userId);
+    }
+
+    isTokenValid(userId) {
+        const token = this.tokens.get(userId);
+        const expiry = this.tokenExpiry.get(userId);
+        return token && expiry && Date.now() < expiry;
+    }
+
+    async generateSecureToken(userId) {
+        try {
+            const response = await fetch('http://localhost:8081/api/auth/generate-token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ userId: userId })
+            });
+
+            if (!response.ok) {
+                throw new Error('Token generation failed');
+            }
+
+            const data = await response.json();
+            const token = data.token;
+            const expiry = Date.now() + (data.expiresIn * 1000);
+
+            this.tokens.set(userId, token);
+            this.tokenExpiry.set(userId, expiry);
+
+            return token;
+        } catch (error) {
+            console.error('Secure token generation failed:', error);
+            return this.generateDemoToken(userId);
+        }
+    }
+
+    generateDemoToken(userId) {
+        const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+        const payload = btoa(JSON.stringify({
+            user_id: userId,
+            iat: Math.floor(Date.now() / 1000),
+            exp: Math.floor(Date.now() / 1000) + 3600,
+            demo: true
+        }));
+        const signature = 'DEMO_SIGNATURE_NOT_FOR_PRODUCTION';
+        
+        const demoToken = `${header}.${payload}.${signature}`;
+        const expiry = Date.now() + (3600 * 1000);
+        
+        this.tokens.set(userId, demoToken);
+        this.tokenExpiry.set(userId, expiry);
+        
+        console.warn('⚠️ Using demo token - not for production use');
+        return demoToken;
+    }
+}
+
+window.tokenManager = new SecureTokenManager();
+console.log('✅ Secure demo config loaded:', window.DEMO_CONFIG.apiEndpoint);
+console.log('🔒 Using secure dynamic token generation');

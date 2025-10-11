@@ -1,5 +1,39 @@
 # DynamoDB Tables for Production
 
+# Data sources
+data "aws_caller_identity" "current" {}
+
+# KMS Key for DynamoDB encryption
+resource "aws_kms_key" "dynamodb_key" {
+  description         = "KMS key for DynamoDB table encryption"
+  enable_key_rotation = true
+  
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Enable IAM User Permissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      }
+    ]
+  })
+  
+  tags = {
+    Name        = "ResponsiveAI-DynamoDB-KMS"
+    Environment = "production"
+  }
+}
+
+resource "aws_kms_alias" "dynamodb_key_alias" {
+  name          = "alias/dynamodb-encryption-key"
+  target_key_id = aws_kms_key.dynamodb_key.key_id
+}
+
 # User Profiles Table
 resource "aws_dynamodb_table" "users" {
   name           = "ResponsiveAI-Users"
@@ -9,6 +43,15 @@ resource "aws_dynamodb_table" "users" {
   attribute {
     name = "user_id"
     type = "S"
+  }
+
+  server_side_encryption {
+    enabled     = true
+    kms_key_arn = aws_kms_key.dynamodb_key.arn
+  }
+
+  point_in_time_recovery {
+    enabled = true
   }
 
   tags = {
@@ -48,6 +91,15 @@ resource "aws_dynamodb_table" "audit" {
   ttl {
     attribute_name = "ttl"
     enabled        = true
+  }
+
+  server_side_encryption {
+    enabled     = true
+    kms_key_arn = aws_kms_key.dynamodb_key.arn
+  }
+
+  point_in_time_recovery {
+    enabled = true
   }
 
   tags = {

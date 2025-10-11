@@ -1,0 +1,53 @@
+🚀 Starting Age-Responsive AI Demo
+
+🔧 Getting API endpoint from terraform...
+✅ API URL: https://rr334o6yh2.execute-api.us-east-1.amazonaws.com/prod/ask
+🔑 Generating JWT tokens...
+Generating tokens for demo users...
+✅ JWT tokens generated for all users
+   Student: eyJhbGciOiJIUzI1NiIs...
+   Teacher: eyJhbGciOiJIUzI1NiIs...
+   Patient: eyJhbGciOiJIUzI1NiIs...
+   Provider: eyJhbGciOiJIUzI1NiIs...
+📝 Creating secure config.js...
+✅ Config.js created with API endpoint and JWT tokens
+   API URL: https://rr334o6yh2.execute-api.us-east-1.amazonaws.com/prod/ask
+   Tokens written to config.js
+🔐 Generated secure JWT secret for this session
+🔍 Checking port availability...
+🔐 Starting secure token API on port 8081...
+🌐 Starting web server on port 8080...
+::1 - - [11/Oct/2025 16:44:59] "GET / HTTP/1.1" 304 -
+::1 - - [11/Oct/2025 16:44:59] "GET /config.js HTTP/1.1" 200 -
+
+🎉 Demo is ready!
+📱 Open: http://localhost:8080
+
+🔧 If you get CORS errors, use Chrome with disabled security:
+   /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --disable-web-security --user-data-dir=/tmp/chrome_dev http://localhost:8080
+
+✨ Features:
+   • API endpoint: Auto-loaded from terraform
+   • JWT tokens: Secure dynamic generation
+   • Real AI responses: Actual Bedrock API calls
+   • Age filtering: Teen vs Adult responses
+   • Role-based: Student/Teacher/Patient/Doctor
+   • Guardrails: Content blocking active
+   • Security: No hardcoded tokens
+
+Press Ctrl+C to stop the demo
+/Users/kpradipp/Desktop/untitled folder 2/bedrock-guardrails-demo/web-demo/token-api.py:85: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  now = datetime.utcnow()
+/Users/kpradipp/Desktop/untitled folder 2/bedrock-guardrails-demo/web-demo/token-api.py:68: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  'generated': datetime.utcnow().isoformat(),
+::1 - - [11/Oct/2025 16:45:26] "GET / HTTP/1.1" 304 -
+::1 - - [11/Oct/2025 16:45:26] "GET /config.js HTTP/1.1" 304 -
+::1 - - [11/Oct/2025 16:45:32] "GET / HTTP/1.1" 200 -
+::1 - - [11/Oct/2025 16:45:48] "GET / HTTP/1.1" 304 -
+::1 - - [11/Oct/2025 16:45:48] "GET /config.js HTTP/1.1" 304 -
+::1 - - [11/Oct/2025 16:49:45] "GET / HTTP/1.1" 304 -
+::1 - - [11/Oct/2025 16:49:45] "GET /config.js HTTP/1.1" 304 -
+::1 - - [11/Oct/2025 16:49:45] "GET /script.js HTTP/1.1" 304 -
+::1 - - [11/Oct/2025 16:50:05] "GET /config.js HTTP/1.1" 200 -
+start_demo.sh: line 209:  4963 Killed: 9               python3 -m http.server 8080
+start_demo.sh: line 210:  4945 Killed: 9               python3 token-api.py

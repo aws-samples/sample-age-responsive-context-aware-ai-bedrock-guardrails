@@ -12,8 +12,8 @@ cd production/web-demo
 
 This automatically:
 - ✅ Gets API endpoint from Terraform
-- ✅ Generates JWT tokens for all test users
-- ✅ Creates config.js with tokens and endpoint
+- ✅ Configures secure dynamic authentication
+- ✅ Creates config.js with API endpoint
 - ✅ Starts web server on http://localhost:8080
 - ✅ Opens demo in browser
 
@@ -60,37 +60,34 @@ lsof -ti:8080 | xargs kill -9
 
 ## 🔧 How It Works
 
-### **Automatic Setup (start_demo.sh)**
+### **Secure Authentication Setup**
 ```bash
 # 1. Gets your API endpoint
 API_URL=$(cd ../terraform && terraform output -raw api_url)
 
-# 2. Generates JWT tokens for all users
-STUDENT_TOKEN=$(python3 generate_token.py | grep student-123)
-TEACHER_TOKEN=$(python3 generate_token.py | grep teacher-456)
-# ... etc for all users
-
-# 3. Creates config.js automatically
+# 2. Creates config.js with secure token manager
 cat > config.js << EOF
 window.DEMO_CONFIG = {
+  "generated": true,
   "apiEndpoint": "$API_URL",
-  "tokens": {
-    "student-123": "$STUDENT_TOKEN",
-    "teacher-456": "$TEACHER_TOKEN",
-    // ... all tokens
-  }
+  "tokenEndpoint": "/api/auth/token",
+  "users": [
+    { "id": "student-123", "role": "student", "name": "Demo Student" },
+    { "id": "teacher-456", "role": "teacher", "name": "Demo Teacher" },
+    // ... secure token manager handles authentication
+  ]
 };
 EOF
 
-# 4. Starts web server
+# 3. Starts web server
 python3 -m http.server 8080
 ```
 
-### **No Manual Token Generation Needed**
-- ✅ **Tokens auto-generated** when you run start_demo.sh
+### **Secure Dynamic Authentication**
+- ✅ **Tokens generated dynamically** by secure token manager
+- ✅ **No hardcoded secrets** in configuration files
 - ✅ **API endpoint auto-detected** from Terraform
-- ✅ **Config auto-created** with all necessary settings
-- ✅ **Ready to use immediately** after deployment
+- ✅ **Production-ready security** with 1-hour token expiry
 
 ## 🎨 Demo Features
 
@@ -142,17 +139,19 @@ python3 -m http.server 8080
 ## 🔒 Security & Authentication
 
 ### **Production-Grade Security**
-- **Real JWT tokens** with proper signatures
+- **Dynamic JWT tokens** with secure generation
+- **No hardcoded secrets** in source code
 - **Token validation** by AWS Lambda
 - **CORS handling** for cross-origin requests
 - **Rate limiting** via API Gateway
 - **Audit logging** in DynamoDB
 
 ### **Demo Safety**
-- **No sensitive data** exposed in browser
+- **No hardcoded tokens** in configuration
+- **Dynamic token generation** with 1-hour expiry
 - **Local-only configuration** (config.js)
-- **Temporary tokens** (24-hour expiry)
 - **Safe test users** (no real personal data)
+- **Demo mode fallback** clearly marked as non-production
 
 ## 🎯 Client Presentation Guide
 
@@ -206,7 +205,7 @@ cd web-demo
 ```bash
 # Method 1: Use the stop script (Recommended)
 cd web-demo
-./stopdemo.sh
+./stop_demo.sh
 
 # Method 2: Press Ctrl+C in the terminal running start_demo.sh
 

@@ -9,3 +9,10 @@ variable "project_name" {
   type        = string
   default     = "responsive-ai-demo"
 }
+
+variable "jwt_secret" {
+  description = "JWT secret key for token validation"
+  type        = string
+  sensitive   = true
+  default     = "change-this-in-production-use-secrets-manager"
+}

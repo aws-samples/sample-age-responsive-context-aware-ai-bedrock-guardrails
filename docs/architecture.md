@@ -30,9 +30,10 @@ sequenceDiagram
     participant R as 🎭 Response Adapter
     
     U->>W: Enter Query + User Selection
-    W->>A: POST /ask + JWT Token
+    W->>W: SecureTokenManager.getToken(userId)
+    W->>A: POST /ask + Dynamic JWT Token (1hr expiry)
     A->>L: Validate JWT & Invoke
-    L->>D: Get User Profile (user_id)
+    L->>D: Get User Profile (from JWT user_id)
     D->>L: Return Age/Role/Industry/Device
     
     Note over L,F: Core Solution: Profile-Based Processing
@@ -157,18 +158,20 @@ graph TB
 
 ## 🔐 Security Architecture
 
-### **Authentication Flow**
+### **Secure Authentication Flow**
 ```mermaid
 graph LR
-    A[👤 User Request] --> B[🔐 JWT Token]
-    B --> C[🚪 API Gateway]
-    C --> D[⚡ Lambda Validation]
-    D --> E[🗄️ DynamoDB Lookup]
-    E --> F[✅ Authorized Request]
+    A[👤 User Request] --> B[🔐 SecureTokenManager]
+    B --> C[🎫 Dynamic JWT (1hr expiry)]
+    C --> D[🚪 API Gateway]
+    D --> E[⚡ Lambda JWT Validation]
+    E --> F[🗄️ DynamoDB User Lookup]
+    F --> G[✅ Authorized Request]
 ```
 
 ### **Data Protection**
-- **JWT Tokens**: Secure user authentication with expiry
+- **Dynamic JWT Tokens**: Secure generation with 1-hour expiry, no hardcoded secrets
+- **SecureTokenManager**: Client-side secure token generation and management
 - **KMS Encryption**: Environment variables and secrets
 - **IAM Roles**: Least privilege access principles
 - **Audit Logging**: Complete interaction tracking

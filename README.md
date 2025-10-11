@@ -1,6 +1,6 @@
 # Age-Responsive AI with Bedrock Guardrails
 
-**Production-ready AI system that automatically adapts responses based on user age, role, and industry context using AWS Bedrock and Claude 3 Sonnet.**
+** solution that automatically adapts responses based on user age, role, and industry context using AWS Bedrock and Claude 3 Sonnet.**
 
 ## Overview and Use Case
 
@@ -37,7 +37,6 @@ This solution demonstrates how you can build a production-ready system using **A
 - **Corporate training platforms** with role-specific content delivery
 - **Financial services** adapting investment advice based on client sophistication
 - **Legal tech** providing appropriate complexity for lawyers vs. clients
-
 
 ##  Key Features
 
@@ -82,7 +81,9 @@ age-responsive-context-aware-ai-bedrock-guardrails/
 │   ├── style.css           
 │   ├── script.js           
 │   ├── start_demo.sh       
-│   └── stopdemo.sh         
+│   └── stop_demo.sh        
+├── docs/
+│   └── architecture.md
 ├── deploy.sh             
 ├── cleanup.sh            
 ├── QUICK_START.md        
@@ -92,9 +93,7 @@ age-responsive-context-aware-ai-bedrock-guardrails/
 ```
 ##  Architecture diagrams
 
-<img width="1908" height="812" alt="image" src="https://github.com/user-attachments/assets/087c9ca4-040c-4864-8cf6-96b6907d2449" />
-
-
+![image](/uploads/6e070a470f5c662360420903f2490260/image.png)
 ---
 
 ##  Architecture Workflow
@@ -102,51 +101,54 @@ age-responsive-context-aware-ai-bedrock-guardrails/
 ```mermaid
 graph TD
     A[👤 User] --> B[🌐 Web UI / API Client]
-    B --> C[🔐 JWT Token]
-    C --> D[🚪 API Gateway]
-    D --> E[⚡ Lambda Function]
-    E --> F[🗄️ DynamoDB User Profiles]
-    F --> G[👤 User Profile Data]
-    G --> H[Age: Child/Teen/Adult/Senior]
-    G --> I[Role: Student/Teacher/Patient/Doctor]
-    G --> J[Industry: Education/Healthcare]
-    G --> K[Device: Mobile/Desktop/Tablet]
+    B --> C[🔐 SecureTokenManager]
+    C --> D[🎫 Dynamic JWT Generation]
+    D --> E[🚪 API Gateway]
+    E --> F[⚡ Lambda Function]
+    F --> G[🗄️ DynamoDB User Profiles]
+    G --> H[👤 User Profile Data]
+    H --> I[Age: Child/Teen/Adult/Senior]
+    H --> J[Role: Student/Teacher/Patient/Doctor]
+    H --> K[Industry: Education/Healthcare]
+    H --> L[Device: Mobile/Desktop/Tablet]
     
-    H --> L[🔍 Query Context Filter]
-    I --> L
-    J --> L
-    K --> L
+    I --> M[🔍 Query Context Filter]
+    J --> M
+    K --> M
+    L --> M
     
-    L --> M[🧠 Context-Aware Prompt Creation]
-    M --> N[🤖 Amazon Bedrock]
-    N --> O[🛡️ Bedrock Guardrails]
-    O --> P[🎯 Claude 3 Sonnet Model]
-    P --> Q{Content Check}
+    M --> N[🧠 Context-Aware Prompt Creation]
+    N --> O[🤖 Amazon Bedrock]
+    O --> P[🛡️ Bedrock Guardrails]
+    P --> Q[🎯 Claude 3 Sonnet Model]
+    Q --> R{Content Check}
     
-    Q -->|✅ Safe Content| R[🎭 Response Adaptation Engine]
-    Q -->|❌ Blocked Content| S[🚫 Safety Message]
+    R -->|✅ Safe Content| S[🎭 Response Adaptation Engine]
+    R -->|❌ Blocked Content| T[🚫 Safety Message]
     
-    R --> T[📝 Age-Appropriate Language]
-    R --> U[🎯 Role-Specific Content]
-    R --> V[🏥 Industry Context]
-    R --> W[📱 Device Optimization]
+    S --> U[📝 Age-Appropriate Language]
+    S --> V[🎯 Role-Specific Content]
+    S --> W[🏥 Industry Context]
+    S --> X[📱 Device Optimization]
     
-    T --> X[📤 Tailored Response]
-    U --> X
-    V --> X
-    W --> X
+    U --> Y[📤 Tailored Response]
+    V --> Y
+    W --> Y
+    X --> Y
     
-    X --> Y[📊 Audit Logging]
-    S --> Y
-    Y --> Z[👤 User Receives Personalized Response]
+    Y --> Z[📊 Audit Logging]
+    T --> Z
+    Z --> AA[👤 User Receives Personalized Response]
     
     style A fill:#e1f5fe
-    style G fill:#fff9c4
-    style L fill:#e8f5e8
-    style R fill:#f3e5f5
-    style N fill:#fff3e0
-    style O fill:#ffebee
-    style Z fill:#e8f5e8
+    style C fill:#f3e5f5
+    style D fill:#fff3e0
+    style H fill:#fff9c4
+    style M fill:#e8f5e8
+    style S fill:#f3e5f5
+    style O fill:#fff3e0
+    style P fill:#ffebee
+    style AA fill:#e8f5e8
 ```
 
 ---
@@ -155,19 +157,31 @@ graph TD
 
 ### 1. Prerequisites
 ```bash
+# Enable Amazon Bedrock model access (only manual step required):
+# 1. Go to AWS Console → Amazon Bedrock → Model Access
+# 2. Request access to Claude 3 Sonnet model
+# 3. Wait for approval (usually instant)
+
 # AWS CLI configured with appropriate permissions
 aws configure
-
-# Python 3.11+ with virtual environment
-python3 -m venv venv
-source venv/bin/activate
-pip install PyJWT boto3
 
 # Terraform installed
 terraform --version
 ```
 
-### 2. Deploy Infrastructure
+### 2. Clone & Setup
+```bash
+# Clone repository
+git clone git@ssh.code.aws.dev:proserve/gcci-devops/age-responsive-context-aware-ai-bedrock-guardrails.git
+cd age-responsive-context-aware-ai-bedrock-guardrails.git
+
+# Setup virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install PyJWT boto3
+```
+
+### 3. Deploy Infrastructure
 ```bash
 # One-command deployment
 ./deploy.sh
@@ -180,21 +194,42 @@ This automatically deploys:
 - **Bedrock Guardrails** for content safety
 - **Audit Logging** infrastructure
 
-### 3. Start Web Demo
+### 4. Start Web Demo
 ```bash
 cd web-demo
 ./start_demo.sh
 # Opens http://localhost:8080 with interactive demo
 ```
 
-### 4. Test API
+### 4. Test Demo
 ```bash
-# Generate JWT token
-cd utils
-python3 generate_jwt.py student-123
+# Interactive web demo with secure authentication
+cd web-demo
+./start_demo.sh
+# Opens http://localhost:8080 - select users and test responses
 
-# Test with cURL - see TESTING_GUIDE.md for details
+# Or test API directly - see TESTING_GUIDE.md for details
 ```
+
+---
+
+---
+
+## 🎯 Live Demo Results
+
+### **Age-Responsive AI in Action**
+
+**Same Question: "What is DNA?" - Different Responses Based on User Context**
+
+#### **Student Response (Age 13)**
+*Simple, engaging language appropriate for 8th grade level*
+![Screenshot_2025-10-11_at_6.32.08_PM](/uploads/4ae613743ff1ceb632dee2770e704e0e/Screenshot_2025-10-11_at_6.32.08_PM.png){width=1236 height=927}
+
+
+#### **Teacher Response (Age 39)**
+*Professional, pedagogical explanation with teaching strategies*
+![Screenshot_2025-10-11_at_6.31.36_PM](/uploads/e2334ba51b4e35cf97cf332a3014f55c/Screenshot_2025-10-11_at_6.31.36_PM.png){width=1296 height=927}
+
 
 ---
 
@@ -233,8 +268,9 @@ sequenceDiagram
     participant R as 🎭 Response Adapter
     
     U->>W: Enter Query + Select User
-    W->>A: POST /ask + JWT Token
-    A->>L: Validate & Invoke
+    W->>W: Generate Secure JWT Token (1hr expiry)
+    W->>A: POST /ask + Dynamic JWT Token
+    A->>L: Validate JWT & Invoke
     L->>D: Get User Profile
     D->>L: Return Age/Role/Industry/Device
     
@@ -303,10 +339,13 @@ sequenceDiagram
 ### Quick API Test
 ```bash
 # See TESTING_GUIDE.md for comprehensive testing scenarios
-cd utils && python3 generate_jwt.py student-123
+# Web demo automatically handles secure JWT generation
+cd web-demo && ./start_demo.sh
+
+# Or test API directly with generated tokens
 curl -X POST "$(cd ../terraform && terraform output -raw api_url)" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <TOKEN>" \
+  -H "Authorization: Bearer <DYNAMIC_JWT_TOKEN>" \
   -d '{"query": "What is DNA?"}'
 ```
 
@@ -426,20 +465,4 @@ const response = await fetch('/api/ask', {
 - **Demo**: Interactive guide in [web-demo/README.md](web-demo/README.md)
 
 ---
-
-## Security
-
-See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
-
-## License
-
-This library is licensed under the MIT-0 License. See the LICENSE file.
-
----
-
-## Author
-
-Pradip Pandey 
-
-Lead Consultant - Amazon Web Services
 

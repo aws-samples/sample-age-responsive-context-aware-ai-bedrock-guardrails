@@ -2,6 +2,12 @@
 resource "aws_iam_role" "lambda_role" {
   name               = "lambda_bedrock_role"
   assume_role_policy = data.aws_iam_policy_document.trust.json
+  
+  tags = {
+    Name        = "ResponsiveAI-Lambda-Role"
+    Environment = "production"
+    Purpose     = "Lambda execution role"
+  }
 }
 
 resource "aws_iam_role_policy" "lambda_exec" {
@@ -77,9 +83,13 @@ resource "aws_iam_role_policy" "lambda_additional" {
       {
         Effect = "Allow"
         Action = [
-          "kms:Decrypt"
+          "kms:Decrypt",
+          "kms:DescribeKey"
         ]
-        Resource = aws_kms_key.lambda_env_key.arn
+        Resource = [
+          aws_kms_key.lambda_env_key.arn,
+          aws_kms_key.dynamodb_key.arn
+        ]
       }
     ]
   })
@@ -94,7 +104,46 @@ data "archive_file" "lambda_zip" {
 
 # KMS Key for Lambda environment encryption
 resource "aws_kms_key" "lambda_env_key" {
-  description = "KMS key for Lambda environment variables"
+  description         = "KMS key for Lambda environment variables"
+  enable_key_rotation = true
+  
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "Enable IAM User Permissions"
+        Effect = "Allow"
+        Principal = {
+          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"
+        }
+        Action   = "kms:*"
+        Resource = "*"
+      },
+      {
+        Sid    = "Allow Lambda Service"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+        Action = [
+          "kms:Decrypt",
+          "kms:DescribeKey"
+        ]
+        Resource = "*"
+        Condition = {
+          StringEquals = {
+            "kms:ViaService" = "lambda.${var.region}.amazonaws.com"
+          }
+        }
+      }
+    ]
+  })
+  
+  tags = {
+    Name        = "ResponsiveAI-Lambda-KMS"
+    Environment = "production"
+    Purpose     = "Lambda environment encryption"
+  }
 }
 
 resource "aws_kms_alias" "lambda_env_key_alias" {
@@ -104,7 +153,15 @@ resource "aws_kms_alias" "lambda_env_key_alias" {
 
 # SQS DLQ for Lambda
 resource "aws_sqs_queue" "lambda_dlq" {
-  name = "responsive-ai-demo-dlq"
+  name                       = "responsive-ai-demo-dlq"
+  kms_master_key_id         = aws_kms_key.lambda_env_key.arn
+  kms_data_key_reuse_period_seconds = 300
+  
+  tags = {
+    Name        = "ResponsiveAI-DLQ"
+    Environment = "production"
+    Purpose     = "Lambda dead letter queue"
+  }
 }
 
 resource "aws_lambda_function" "fn" {
@@ -134,11 +191,17 @@ resource "aws_lambda_function" "fn" {
       GUARDRAIL_ID = aws_bedrock_guardrail.demo_guardrail.guardrail_id
       USER_TABLE = aws_dynamodb_table.users.name
       AUDIT_TABLE = aws_dynamodb_table.audit.name
-      JWT_SECRET = "production-jwt-secret-key-change-in-production"
+      JWT_SECRET = var.jwt_secret
     }
   }
   
   kms_key_arn = aws_kms_key.lambda_env_key.arn
+  
+  tags = {
+    Name        = "ResponsiveAI-Lambda"
+    Environment = "production"
+    Purpose     = "Context-aware AI processing"
+  }
 }
 
 resource "aws_lambda_permission" "apigw" {
