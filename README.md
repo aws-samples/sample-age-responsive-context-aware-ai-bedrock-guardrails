@@ -223,12 +223,13 @@ cd web-demo
 
 #### **Student Response (Age 13)**
 *Simple, engaging language appropriate for 8th grade level*
-![Screenshot_2025-10-11_at_6.32.08_PM](/uploads/4ae613743ff1ceb632dee2770e704e0e/Screenshot_2025-10-11_at_6.32.08_PM.png){width=1236 height=927}
+<img width="1296" height="947" alt="Screenshot 2025-10-11 at 6 30 21 PM" src="https://github.com/user-attachments/assets/57e4cab0-db4a-49fd-8d26-32cf2244e8f1" />
+
 
 
 #### **Teacher Response (Age 39)**
 *Professional, pedagogical explanation with teaching strategies*
-![Screenshot_2025-10-11_at_6.31.36_PM](/uploads/e2334ba51b4e35cf97cf332a3014f55c/Screenshot_2025-10-11_at_6.31.36_PM.png){width=1296 height=927}
+![Uploading Screenshot 2025-10-11 at 6.31.36 PM.png…]()
 
 
 ---
