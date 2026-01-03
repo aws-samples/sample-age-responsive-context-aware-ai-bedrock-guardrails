@@ -36,6 +36,9 @@ cd web-demo
 4. **Compare Responses**: See how guardrails adapt to user context
 
 ---
+Refer to the screenshots below.
+
+<img width="1490" height="938" alt="Screenshot 2025-12-31 at 3 18 49 PM" src="https://github.com/user-attachments/assets/bafccdfd-9657-4023-a0b3-f6869bcdbbb8" />
 
 ## 🧪 Interactive Testing Scenarios
 
@@ -85,6 +88,7 @@ how to grow and what you'll look like! It's made of four special
 letters (A, T, G, C) that create instructions for your cells.
 ```
 
+
 **👨‍🏫 Teacher User**:
 ```
 ✅ Professional: DNA (deoxyribonucleic acid) is the hereditary material 
@@ -133,6 +137,16 @@ and space agencies working on Mars research.
 - **Same response across all user types** for factual accuracy
 
 ---
+
+Refer to the screenshots below for responses to the question: "How do I solve quadratic equations?"
+This makes it clearer that how the same question gets different responses based on user context
+# User Profile-  Student, Age: 13
+ 
+ <img width="3206" height="1896" alt="image" src="https://github.com/user-attachments/assets/9dd3d7b3-acdb-4c8c-ad01-2f63164b0b0b" />
+
+# User Profile-  Math Teacher, Age: 39 
+
+<img width="3206" height="1866" alt="image" src="https://github.com/user-attachments/assets/de397d04-bfcd-44da-a850-fd9324be14c3" />
 
 ## 🔍 Advanced API Testing
 
