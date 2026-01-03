@@ -1,8 +1,0 @@
-{
-  "name": "demo-guardrail",
-  "description": "Block unsafe/hallucinated content",
-  "rules": [
-    {"action": "BLOCK", "types": ["HALLUCINATION"]},
-    {"action": "BLOCK", "patterns": ["*violence*","*CEO of Mars*"]}
-  ]
-}

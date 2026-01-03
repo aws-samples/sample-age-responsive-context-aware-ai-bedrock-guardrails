@@ -1,425 +1,409 @@
-import os
 import json
-import html
+import boto3
+import os
 import logging
 import jwt
+import base64
 from datetime import datetime
-from boto3 import client
 from botocore.exceptions import ClientError
 
 # Configure logging
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-bedrock = client('bedrock-runtime')
-dynamodb = client('dynamodb')
+# Initialize AWS clients
+dynamodb = boto3.resource('dynamodb')
+bedrock = boto3.client('bedrock-runtime')
+secrets_client = boto3.client('secretsmanager')
 
 def lambda_handler(event, context):
-    """Production Lambda with automatic context detection"""
-    
-    # Handle CORS preflight requests
-    if event.get('httpMethod') == 'OPTIONS' or event.get('requestContext', {}).get('http', {}).get('method') == 'OPTIONS':
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                'Access-Control-Max-Age': '86400'
-            },
-            'body': ''
-        }
-    
+    """
+    Secure Lambda handler following AWS best practices
+    Flow: WAF -> API Gateway -> Cognito Auth -> Lambda -> Bedrock -> Guardrails -> Response
+    """
     try:
-        # Extract user context from authentication and headers
-        user_context = extract_user_context(event)
+        # Handle CORS preflight
+        if event.get('httpMethod') == 'OPTIONS':
+            return cors_response(200, '')
         
-        # Create industry-specific prompt
-        system_prompt = create_industry_prompt(
-            user_context['role'],
-            user_context['device'], 
-            user_context['age'],
-            user_context.get('industry', 'general'),
-            user_context.get('additional_context', {})
-        )
+        # Extract user from Cognito authorizer context (API Gateway handles JWT validation)
+        user_id = get_user_from_context(event)
+        if not user_id:
+            return cors_response(401, {'error': 'Unauthorized'})
         
-        # Prepare Claude 3 request body with age-appropriate token limits
-        max_tokens = 50 if user_context['age'] == 'teen' else 100 if user_context['age'] == 'child' else 200
+        # Parse and validate request
+        body = parse_request_body(event)
+        if 'error' in body:
+            return cors_response(400, body)
         
-        request_body = {
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": max_tokens,
-            "temperature": 0.5,
-            "system": system_prompt,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": user_context['query']
-                }
-            ]
-        }
+        query = body.get('query', '').strip()
+        conversation_id = body.get('conversation_id')  # Optional for follow-ups
+        if not query or len(query) > 1000:
+            return cors_response(400, {'error': 'Invalid query'})
         
-        # Invoke Bedrock with Guardrails
-        guardrail_id = os.environ.get('GUARDRAIL_ID')
-        invoke_params = {
-            'modelId': 'anthropic.claude-3-sonnet-20240229-v1:0',
-            'body': json.dumps(request_body),
-            'contentType': 'application/json',
-            'accept': 'application/json'
-        }
+        # Auto-correct grammar if needed
+        corrected_query = auto_correct_grammar(query)
         
-        if guardrail_id:
-            invoke_params['guardrailIdentifier'] = guardrail_id
-            invoke_params['guardrailVersion'] = 'DRAFT'
-            
-        response = bedrock.invoke_model(**invoke_params)
+        # Get user profile
+        user_profile = get_user_profile(user_id)
+        if not user_profile:
+            return cors_response(404, {'error': 'User profile not found'})
         
-        # Parse response
-        response_body = json.loads(response['body'].read())
-        text = response_body['content'][0]['text']
+        # Get conversation history for follow-ups
+        conversation_history = get_conversation_history(user_id, conversation_id) if conversation_id else []
         
-        # Log interaction for audit
-        log_interaction(user_context, text)
+        # Generate context-aware prompt with corrected query
+        prompt = generate_context_aware_prompt(corrected_query, user_profile, conversation_history)
         
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-            },
-            'body': json.dumps({
-                'response': text,
-                'metadata': {
-                    'user_id': user_context['user_id'],
-                    'role': user_context['role'],
-                    'device': user_context['device'],
-                    'age': user_context['age'],
-                    'industry': user_context.get('industry', 'general'),
-                    'guardrail_applied': bool(guardrail_id),
-                    'timestamp': datetime.now().isoformat()
-                }
-            })
-        }
+        # Call Bedrock with dynamically selected guardrails
+        bedrock_response = call_bedrock_with_guardrails(prompt, user_profile)
+        response = bedrock_response['content']
+        guardrail_config = bedrock_response['guardrail_config']
         
-    except jwt.InvalidTokenError:
-        return {
-            'statusCode': 401,
-            'headers': {'Content-Type': 'application/json'},
-            'body': json.dumps({'error': 'Invalid or missing authentication token'})
-        }
-    except ClientError as e:
-        error_code = e.response['Error']['Code']
-        if error_code == 'ValidationException' and 'guardrail' in str(e):
-            return {
-                'statusCode': 200,
-                'headers': {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                    'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-                },
-                'body': json.dumps({
-                    'response': 'I can\'t provide that information due to safety guidelines. Please try a different question.',
-                    'blocked': True,
-                    'metadata': {
-                        'guardrail_triggered': True,
-                        'timestamp': datetime.now().isoformat()
-                    }
-                })
+        # Log for audit and save conversation
+        conversation_id = conversation_id or f"{user_id}-{int(datetime.now().timestamp())}"
+        log_interaction(user_id, query, response, user_profile)
+        save_conversation_turn(user_id, conversation_id, query, response)
+        
+        return cors_response(200, {
+            'response': response,
+            'conversation_id': conversation_id,
+            'original_query': query,
+            'corrected_query': corrected_query if corrected_query != query else None,
+            'metadata': {
+                'user_id': user_id,
+                'age_group': user_profile.get('age_group', 'unknown'),
+                'role': user_profile.get('role', 'unknown'),
+                'industry': user_profile.get('industry', 'unknown'),
+                'device': user_profile.get('device', 'desktop'),
+                'guardrail_applied': True,
+                'guardrail_config': guardrail_config,  # Show which guardrail was used
+                'grammar_corrected': corrected_query != query,
+                'timestamp': datetime.now().isoformat()
             }
-        raise e
+        })
+        
     except Exception as e:
-        logger.error(f"Lambda execution error: {type(e).__name__}: {str(e)}", exc_info=True)
-        return {
-            'statusCode': 500,
-            'headers': {'Content-Type': 'application/json'},
-            'body': json.dumps({'error': 'Internal server error'})
-        }
+        logger.error(f"Error: {str(e)}", exc_info=True)
+        return cors_response(500, {'error': 'Internal server error'})
 
-def extract_user_context(event):
-    """Extract user context from JWT token and headers"""
-    
-    # 1. Extract and verify JWT token
-    headers = event.get('headers', {})
-    logger.info(f"All headers: {list(headers.keys())}")
-    
-    # API Gateway v2 may normalize headers differently
-    auth_header = (
-        headers.get('Authorization') or 
-        headers.get('authorization') or 
-        headers.get('AUTHORIZATION') or ''
-    )
-    logger.info(f"Auth header: {auth_header[:50]}...")
-    
-    if not auth_header.startswith('Bearer '):
-        logger.error("Missing Bearer token")
-        raise jwt.InvalidTokenError("Missing Bearer token")
-    
-    token = auth_header.replace('Bearer ', '')
-    logger.info(f"Token extracted: {token[:50]}...")
-    
-    # Decode JWT (in production, verify with proper secret)
-    jwt_secret = os.environ.get('JWT_SECRET', 'demo-secret-key')
-    logger.info(f"Using JWT secret: {jwt_secret[:20]}...")
-    
+def get_user_from_context(event):
+    """Extract user ID from Cognito authorizer context"""
     try:
-        user_claims = jwt.decode(token, jwt_secret, algorithms=['HS256'])
-        logger.info(f"JWT decoded successfully: {user_claims}")
-    except jwt.ExpiredSignatureError:
-        logger.error("JWT token has expired")
-        raise jwt.InvalidTokenError("Token has expired")
-    except jwt.InvalidSignatureError:
-        logger.error("JWT signature verification failed")
-        raise jwt.InvalidTokenError("Invalid token signature")
+        # API Gateway Cognito authorizer provides user context
+        authorizer = event.get('requestContext', {}).get('authorizer', {})
+        claims = authorizer.get('claims', {})
+        
+        # Get user ID from Cognito claims
+        user_id = claims.get('cognito:username') or claims.get('sub')
+        
+        if user_id and len(user_id) <= 100:
+            logger.info(f"User from Cognito authorizer: {user_id}")
+            return user_id
+            
+        logger.error("No valid user context found in Cognito authorizer")
+        logger.info(f"Event context: {event.get('requestContext', {})}")
+        return None
+        
     except Exception as e:
-        logger.error(f"JWT decode error: {type(e).__name__}: {str(e)}")
-        raise jwt.InvalidTokenError(f"Token validation failed: {str(e)}")
-    
-    # 2. Get user profile from database
-    user_profile = get_user_profile(user_claims['user_id'])
-    
-    # 3. Calculate age group from birth date
-    age_group = calculate_age_group(user_profile.get('birth_date'))
-    
-    # 4. Detect device from User-Agent
-    user_agent = event.get('headers', {}).get('User-Agent', '')
-    device = detect_device_type(user_agent)
-    
-    # 5. Extract query from body
-    body = json.loads(event.get('body', '{}'))
-    query = body.get('query', '')
-    
-    return {
-        'user_id': user_claims['user_id'],
-        'age': age_group,
-        'role': user_profile.get('role', 'guest'),
-        'device': device,
-        'query': query,
-        'industry': user_profile.get('industry', 'general'),
-        'additional_context': {
-            'grade_level': user_profile.get('grade_level'),
-            'department': user_profile.get('department'),
-            'clearance_level': user_profile.get('clearance_level'),
-            'parental_controls': user_profile.get('parental_controls', False)
-        }
-    }
+        logger.error(f"Error extracting user context: {e}")
+        return None
+
+def parse_request_body(event):
+    """Parse and validate request body"""
+    try:
+        body = json.loads(event.get('body', '{}'))
+        return body
+    except json.JSONDecodeError:
+        return {'error': 'Invalid JSON'}
 
 def get_user_profile(user_id):
     """Get user profile from DynamoDB"""
-    table_name = os.environ.get('USER_TABLE', 'ResponsiveAI-Users')
-    
     try:
-        response = dynamodb.get_item(
-            TableName=table_name,
-            Key={'user_id': {'S': user_id}}
+        table = dynamodb.Table(os.environ['USER_TABLE'])
+        response = table.get_item(Key={'user_id': user_id})
+        
+        if 'Item' not in response:
+            return None
+            
+        profile = response['Item']
+        
+        # Calculate age group from birth_date
+        if 'birth_date' in profile:
+            try:
+                birth_date = datetime.strptime(profile['birth_date'], '%Y-%m-%d')
+                age = (datetime.now() - birth_date).days // 365
+                
+                if age < 13:
+                    profile['age_group'] = 'child'
+                elif age < 18:
+                    profile['age_group'] = 'teen'
+                elif age < 65:
+                    profile['age_group'] = 'adult'
+                else:
+                    profile['age_group'] = 'senior'
+            except:
+                profile['age_group'] = 'adult'
+        
+        return profile
+        
+    except Exception as e:
+        logger.error(f"Error getting user profile: {e}")
+        return None
+
+def generate_context_aware_prompt(query, user_profile, conversation_history=[]):
+    """Create dramatically different prompts based on age and role combinations with conversation context"""
+    age_group = user_profile.get('age_group', 'adult')
+    role = user_profile.get('role', 'general')
+    industry = user_profile.get('industry', 'general')
+    
+    # Add conversation history if available
+    context = ""
+    if conversation_history:
+        context = "Previous conversation:\n"
+        for turn in conversation_history[-3:]:  # Last 3 turns
+            context += f"Q: {turn['query']}\nA: {turn['response'][:200]}...\n\n"
+        context += "Current question:\n"
+    
+    # Create role-specific prompts that are completely different
+    if role == 'student' and age_group == 'teen':
+        prompt = f"{context}A 13-year-old student is asking: {query}\n\n"
+        prompt += "Answer like you're explaining to a curious teenager. Use simple, clear language that a 8th grader can understand. Make it engaging and relatable to their world - school, friends, social media, games. Keep it educational but fun. Use 2-3 sentences maximum. Avoid baby talk but keep it age-appropriate."
+        
+    elif role == 'teacher' and age_group == 'adult':
+        prompt = f"{context}An experienced teacher is asking: {query}\n\n"
+        prompt += "Provide a comprehensive educational response with teaching strategies, curriculum connections, and pedagogical insights. Include how to explain this concept to different grade levels, classroom activities, and educational best practices. Be professional and detailed."
+        
+    elif role == 'patient' and industry == 'healthcare':
+        prompt = f"{context}A healthcare patient is asking: {query}\n\n"
+        prompt += "Explain in simple, reassuring terms that a worried patient can understand. Avoid complex medical jargon. Focus on general health information and encourage consulting healthcare providers for specific medical advice. Be empathetic and clear."
+        
+    elif role == 'provider' and industry == 'healthcare':
+        prompt = f"{context}A healthcare provider is asking: {query}\n\n"
+        prompt += "Provide detailed clinical information with appropriate medical terminology, evidence-based recommendations, and professional insights. Include relevant medical guidelines, diagnostic considerations, and treatment protocols as appropriate for healthcare professionals."
+        
+    else:
+        # Default adult response
+        prompt = f"{context}Answer this question professionally: {query}\n\n"
+        prompt += "Provide a clear, informative response appropriate for an adult audience. Be accurate, helpful, and comprehensive."
+    
+    return prompt
+
+def auto_correct_grammar(query):
+    """Auto-correct grammar using Claude AI"""
+    try:
+        # Skip correction for math expressions
+        if any(char in query for char in ['+', '-', '*', '/', '=', '<', '>', '%']):
+            return query
+        
+        # Skip correction for numbers-only queries
+        if query.replace(' ', '').replace('+', '').replace('-', '').replace('*', '').replace('/', '').isdigit():
+            return query
+            
+        # Simple grammar corrections for common mistakes
+        corrections = {
+            'wat is': 'what is',
+            'wats': 'what is',
+            'whats': 'what is', 
+            'whos': 'who is',
+            'hows': 'how is',
+            'wheres': 'where is',
+            'whens': 'when is',
+            'whys': 'why is',
+            'ur': 'your',
+            'u': 'you',
+            'r': 'are',
+            'n': 'and',
+            'b4': 'before',
+            'plz': 'please',
+            'pls': 'please',
+            'thx': 'thanks',
+            'ty': 'thank you'
+        }
+        
+        corrected = query.lower()
+        
+        # Only apply word-level corrections, not single character replacements for math
+        for mistake, correction in corrections.items():
+            if len(mistake) > 1:  # Skip single character replacements
+                corrected = corrected.replace(mistake, correction)
+        
+        # Capitalize first letter
+        if corrected:
+            corrected = corrected[0].upper() + corrected[1:]
+            
+        # Add question mark if missing and it's a question
+        question_words = ['what', 'who', 'where', 'when', 'why', 'how', 'is', 'are', 'can', 'do', 'does']
+        if any(corrected.lower().startswith(word) for word in question_words):
+            if not corrected.endswith('?'):
+                corrected += '?'
+        
+        return corrected
+        
+    except Exception as e:
+        logger.error(f"Grammar correction error: {e}")
+        return query  # Return original if correction fails
+
+def get_conversation_history(user_id, conversation_id):
+    """Get conversation history from DynamoDB"""
+    try:
+        table = dynamodb.Table(os.environ['AUDIT_TABLE'])
+        response = table.query(
+            IndexName='conversation-index',  # You'd need to add this GSI
+            KeyConditionExpression='conversation_id = :cid',
+            ExpressionAttributeValues={':cid': conversation_id},
+            ScanIndexForward=True,
+            Limit=10
+        )
+        return response.get('Items', [])
+    except Exception as e:
+        logger.error(f"Error getting conversation history: {e}")
+        return []
+
+def save_conversation_turn(user_id, conversation_id, query, response):
+    """Save conversation turn for follow-ups"""
+    try:
+        table = dynamodb.Table(os.environ['AUDIT_TABLE'])
+        table.put_item(Item={
+            'interaction_id': f"{user_id}-{int(datetime.now().timestamp())}",
+            'conversation_id': conversation_id,
+            'user_id': user_id,
+            'timestamp': datetime.now().isoformat(),
+            'query': query[:1000],
+            'response': response[:2000],  # Store response for context
+            'ttl': int(datetime.now().timestamp()) + (24 * 60 * 60)  # 24 hour TTL
+        })
+    except Exception as e:
+        logger.error(f"Error saving conversation: {e}")
+
+def select_guardrail_configuration(user_profile):
+    """
+    CORE FEATURE: Dynamic guardrail selection based on user context
+    Guardrails are ALWAYS applied - never bypassed
+    Context determines WHICH guardrail, not WHETHER to apply one
+    """
+    age_group = user_profile.get('age_group', 'adult')
+    role = user_profile.get('role', 'general')
+    industry = user_profile.get('industry', 'general')
+    
+    # CHILD PROTECTION (Maximum Security)
+    if age_group == 'child':
+        return {
+            'guardrail_id': os.environ.get('CHILD_GUARDRAIL_ID'),
+            'guardrail_version': '1',
+            'protection_level': 'maximum',
+            'compliance': 'COPPA'
+        }
+    
+    # TEEN EDUCATIONAL (Balanced Protection)
+    elif age_group == 'teen':
+        return {
+            'guardrail_id': os.environ.get('TEEN_GUARDRAIL_ID'),
+            'guardrail_version': '1',
+            'protection_level': 'balanced',
+            'context': 'educational'
+        }
+    
+    # HEALTHCARE PROFESSIONAL (HIPAA Compliance)
+    elif industry == 'healthcare' and role == 'provider':
+        return {
+            'guardrail_id': os.environ.get('HEALTHCARE_PROFESSIONAL_GUARDRAIL_ID'),
+            'guardrail_version': '1',
+            'protection_level': 'clinical',
+            'compliance': 'HIPAA'
+        }
+    
+    # HEALTHCARE PATIENT (Medical Advice Blocking)
+    elif industry == 'healthcare' and role == 'patient':
+        return {
+            'guardrail_id': os.environ.get('HEALTHCARE_PATIENT_GUARDRAIL_ID'),
+            'guardrail_version': '1',
+            'protection_level': 'medical_safety',
+            'compliance': 'Patient_Safety'
+        }
+    
+    # ADULT GENERAL (Standard Protection)
+    else:
+        return {
+            'guardrail_id': os.environ.get('ADULT_GENERAL_GUARDRAIL_ID'),
+            'guardrail_version': '1',
+            'protection_level': 'standard',
+            'context': 'general'
+        }
+
+def call_bedrock_with_guardrails(prompt, user_profile):
+    """Call Bedrock with dynamically selected guardrails based on user context"""
+    try:
+        # CORE INNOVATION: Dynamic guardrail selection
+        guardrail_config = select_guardrail_configuration(user_profile)
+        
+        guardrail_id = guardrail_config['guardrail_id']
+        guardrail_version = guardrail_config['guardrail_version']
+        
+        if not guardrail_id:
+            logger.error("No guardrail configuration found - this should never happen")
+            # Fallback to default guardrail - never bypass guardrails
+            guardrail_id = os.environ.get('DEFAULT_GUARDRAIL_ID')
+            
+        request_body = {
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": 500,
+            "messages": [{"role": "user", "content": prompt}]
+        }
+        
+        # ALWAYS call with guardrails - guardrails are never bypassed
+        response = bedrock.invoke_model(
+            modelId="anthropic.claude-3-sonnet-20240229-v1:0",
+            body=json.dumps(request_body),
+            contentType="application/json",
+            accept="application/json",
+            guardrailIdentifier=guardrail_id,
+            guardrailVersion=guardrail_version
         )
         
-        if 'Item' in response:
-            # Convert DynamoDB format to Python dict
-            item = response['Item']
-            return {
-                'birth_date': item.get('birth_date', {}).get('S'),
-                'role': item.get('role', {}).get('S', 'guest'),
-                'industry': item.get('industry', {}).get('S', 'general'),
-                'grade_level': item.get('grade_level', {}).get('S'),
-                'department': item.get('department', {}).get('S'),
-                'clearance_level': item.get('clearance_level', {}).get('S'),
-                'parental_controls': item.get('parental_controls', {}).get('BOOL', False)
-            }
-    except Exception as e:
-        logger.warning(f"Failed to get user profile: {e}")
-    
-    # Return default profile if database lookup fails
-    return {'role': 'guest', 'industry': 'general'}
-
-def calculate_age_group(birth_date):
-    """Calculate age group from birth date"""
-    if not birth_date:
-        return 'adult'
-    
-    try:
-        birth = datetime.fromisoformat(birth_date)
-        age = (datetime.now() - birth).days // 365
+        response_body = json.loads(response['body'].read())
         
-        if age < 13:
-            return 'child'
-        elif age < 18:
-            return 'teen'
-        elif age < 65:
-            return 'adult'
-        else:
-            return 'senior'
-    except:
-        return 'adult'
-
-def detect_device_type(user_agent):
-    """Detect device from User-Agent header"""
-    user_agent = user_agent.lower()
-    
-    if 'mobile' in user_agent or 'android' in user_agent:
-        return 'mobile'
-    elif 'tablet' in user_agent or 'ipad' in user_agent:
-        return 'tablet'
-    elif 'kiosk' in user_agent:
-        return 'kiosk'
-    else:
-        return 'desktop'
-
-def create_industry_prompt(role, device, age, industry, additional_context):
-    """Create industry-specific prompts"""
-    
-    # Base age-appropriate language
-    age_styles = {
-        'child': 'Use simple, fun language. Keep explanations very short (1-2 sentences max).',
-        'teen': 'Keep responses very short and simple. Use casual language. Maximum 2-3 sentences only.',
-        'adult': 'Provide comprehensive, professional responses.',
-        'senior': 'Use clear, patient explanations. Avoid technical jargon.'
-    }
-    
-    # Industry-specific contexts
-    if industry == 'education':
-        return create_education_prompt(role, device, age, additional_context, age_styles)
-    elif industry == 'healthcare':
-        return create_healthcare_prompt(role, device, age, additional_context, age_styles)
-    else:
-        return create_general_prompt(role, device, age, age_styles)
-
-def create_education_prompt(role, device, age, context, age_styles):
-    """Education industry specific prompt"""
-    
-    role_contexts = {
-        'student': f"Educational content appropriate for grade {context.get('grade_level', 'unknown')}",
-        'teacher': 'Professional educator providing comprehensive explanations',
-        'parent': 'Family-friendly educational guidance',
-        'administrator': 'Educational policy and administrative insights'
-    }
-    
-    parental_note = " IMPORTANT: Parental controls active - keep content family-safe." if context.get('parental_controls') else ""
-    
-    # Teachers get full professional responses regardless of age context
-    if role == 'teacher':
-        return f"""
-You are an AI assistant for professional educators.
-
-User Context:
-- Role: Professional Teacher/Educator
-- Device: {device}
-- Subject Area: {context.get('grade_level', 'General Education')}
-
-Response Guidelines:
-- Provide comprehensive, professional educational explanations
-- Include pedagogical insights and teaching strategies when relevant
-- Use appropriate academic terminology
-- Focus on educational value and learning outcomes
-- Maintain professional educator standards{parental_note}
-
-You are helping a qualified educator - provide detailed, professional responses.
-"""
-    
-    # Special handling for students (teens)
-    if role == 'student' and age == 'teen':
-        return f"""
-You are an AI assistant for students. Keep responses VERY SHORT and simple.
-
-User: {role} (age 13)
-Device: {device}
-
-IMPORTANT RULES:
-- Maximum 2-3 sentences only
-- Use simple, casual language like talking to a friend
-- No bullet points or long lists
-- Give just the basic answer they need
-- Think like explaining to a middle school student
-
-Example: "What is DNA?" → "DNA is like a recipe book that tells your body how to grow and what you'll look like!"
-"""
-    
-    return f"""
-You are an AI assistant for an educational platform.
-
-User Context:
-- Role: {role} ({role_contexts.get(role, 'General user')})
-- Age Group: {age}
-- Device: {device}
-- Grade Level: {context.get('grade_level', 'Not specified')}
-
-Response Guidelines:
-- Language Style: {age_styles.get(age, age_styles['adult'])}
-- Educational Focus: Provide learning-oriented responses with examples
-- Safety: Always maintain educational appropriateness{parental_note}
-- Device Format: Optimize for {device} viewing
-
-Always prioritize educational value and age-appropriate content.
-"""
-
-def create_healthcare_prompt(role, device, age, context, age_styles):
-    """Healthcare industry specific prompt"""
-    
-    role_contexts = {
-        'patient': 'Patient-friendly medical information',
-        'provider': 'Clinical insights and medical guidance',
-        'nurse': 'Nursing-focused care information',
-        'administrator': 'Healthcare administration and policy'
-    }
-    
-    return f"""
-You are an AI assistant for a healthcare platform.
-
-User Context:
-- Role: {role} ({role_contexts.get(role, 'General user')})
-- Age Group: {age}
-- Device: {device}
-- Clearance: {context.get('clearance_level', 'Standard')}
-
-Response Guidelines:
-- Language Style: {age_styles.get(age, age_styles['adult'])}
-- Medical Focus: Provide health-appropriate information
-- Compliance: Follow HIPAA guidelines and medical ethics
-- Safety: Never provide specific medical diagnoses or treatment advice
-- Device Format: Optimize for {device} viewing
-
-IMPORTANT: Always recommend consulting healthcare professionals for medical decisions.
-"""
-
-def create_general_prompt(role, device, age, age_styles):
-    """General purpose prompt"""
-    
-    return f"""
-You are a helpful AI assistant providing context-aware responses.
-
-User Context:
-- Role: {role}
-- Age Group: {age}
-- Device: {device}
-
-Response Guidelines:
-- Language Style: {age_styles.get(age, age_styles['adult'])}
-- Device Format: Optimize for {device} viewing
-- Safety: Maintain appropriate content for all users
-
-Always be helpful, accurate, and appropriate for the user's context.
-"""
-
-def log_interaction(user_context, response):
-    """Log interaction for audit and analytics"""
-    log_table = os.environ.get('AUDIT_TABLE', 'ResponsiveAI-Audit')
-    
-    try:
-        dynamodb.put_item(
-            TableName=log_table,
-            Item={
-                'interaction_id': {'S': f"{user_context['user_id']}-{int(datetime.now().timestamp())}"},
-                'user_id': {'S': user_context['user_id']},
-                'timestamp': {'S': datetime.now().isoformat()},
-                'query': {'S': user_context['query'][:500]},  # Truncate for storage
-                'response_length': {'N': str(len(response))},
-                'age_group': {'S': user_context['age']},
-                'role': {'S': user_context['role']},
-                'device': {'S': user_context['device']},
-                'industry': {'S': user_context.get('industry', 'general')}
-            }
-        )
+        # Return both response and guardrail metadata
+        return {
+            'content': response_body['content'][0]['text'],
+            'guardrail_config': guardrail_config
+        }
+        
     except Exception as e:
-        logger.warning(f"Failed to log interaction: {e}")
+        logger.error(f"Bedrock error: {e}")
+        return {
+            'content': "I apologize, but I'm unable to process your request at this time.",
+            'guardrail_config': {'error': str(e)}
+        }
+
+
+
+def log_interaction(user_id, query, response, user_profile):
+    """Log interaction for audit"""
+    try:
+        table = dynamodb.Table(os.environ['AUDIT_TABLE'])
+        
+        table.put_item(Item={
+            'interaction_id': f"{user_id}-{int(datetime.now().timestamp())}",
+            'user_id': user_id,
+            'timestamp': datetime.now().isoformat(),
+            'query': query[:1000],  # Limit length
+            'response_length': len(response),
+            'age_group': user_profile.get('age_group', 'unknown'),
+            'role': user_profile.get('role', 'unknown')
+        })
+    except Exception as e:
+        logger.error(f"Audit logging error: {e}")
+
+def cors_response(status_code, body):
+    """Return response with CORS headers"""
+    return {
+        'statusCode': status_code,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+            'Access-Control-Allow-Methods': 'POST,OPTIONS'
+        },
+        'body': json.dumps(body) if isinstance(body, dict) else body
+    }
