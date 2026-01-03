@@ -471,6 +471,8 @@ flowchart LR
 
 ## 🔒 Security Features
 
+See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
+
 ### ✅ Security Compliance Implemented
 
 - **Input Validation** - Comprehensive sanitization and regex validation for all inputs
@@ -607,4 +609,16 @@ resource "aws_lambda_function" "main" {
 **Bottom Line**: Transform your AI applications with context-aware safety that protects users while enabling appropriate content for different demographics - all with enterprise-grade security and 40% cost savings over traditional moderation approaches.
 
 ---
+
+## License
+
+This library is licensed under the MIT-0 License. See the LICENSE file.
+
+---
+
+## Author
+
+Pradip Pandey 
+
+Lead Consultant - Amazon Web Services
 
