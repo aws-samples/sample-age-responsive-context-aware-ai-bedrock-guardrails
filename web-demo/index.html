@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Age-Responsive AI Demo - Production Integration</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==">
     <link href="style.css" rel="stylesheet">
+    <!-- AWS SDK for Cognito Authentication -->
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1.24.min.js"></script>
 </head>
 <body>
     <div class="demo-container">
@@ -18,16 +20,96 @@
             <div class="demo-badge">Production Demo</div>
         </header>
 
+        <!-- Authentication Info -->
+        <div class="auth-section">
+            <div class="auth-info-panel">
+                <h3><i class="fas fa-shield-alt"></i> AWS Cognito Authentication</h3>
+                <div class="auth-details">
+                    <div class="auth-item">
+                        <strong>User Pool:</strong> <code id="cognito-pool">us-east-1_9jFyhFHjO</code>
+                    </div>
+                    <div class="auth-item">
+                        <strong>Client ID:</strong> <code>4q9ok36n6li70f4lfo5cqgch8m</code>
+                    </div>
+                    <div class="auth-item">
+                        <strong>Authentication:</strong> <span class="auth-status">✅ JWT Tokens Pre-generated</span>
+                    </div>
+                    <div class="auth-item">
+                        <strong>Security:</strong> <span class="security-status">🛡️ API Gateway validates JWT signatures</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Registration -->
+        <div class="user-registration" id="user-registration">
+            <h3><i class="fas fa-user-plus"></i> Create New User Profile</h3>
+            <div class="registration-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="reg-username">Username:</label>
+                        <input type="text" id="reg-username" placeholder="e.g., john-doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-name">Display Name:</label>
+                        <input type="text" id="reg-name" placeholder="e.g., John Doe" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="reg-birthdate">Birth Date:</label>
+                        <input type="date" id="reg-birthdate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-role">Role:</label>
+                        <select id="reg-role" required>
+                            <option value="">Select Role</option>
+                            <option value="student">Student</option>
+                            <option value="teacher">Teacher</option>
+                            <option value="patient">Patient</option>
+                            <option value="provider">Healthcare Provider</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="reg-industry">Industry:</label>
+                        <select id="reg-industry" required>
+                            <option value="">Select Industry</option>
+                            <option value="education">Education</option>
+                            <option value="healthcare">Healthcare</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="reg-device">Device:</label>
+                        <select id="reg-device" required>
+                            <option value="desktop">Desktop</option>
+                            <option value="mobile">Mobile</option>
+                            <option value="tablet">Tablet</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" onclick="createUser()" class="create-user-btn">
+                        <i class="fas fa-user-plus"></i> Create User Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- User Selector -->
-        <div class="user-selector">
-            <h3><i class="fas fa-users"></i> Select User Profile</h3>
-            <div class="user-cards">
+        <div class="user-selector" id="user-selector">
+            <h3><i class="fas fa-users"></i> Select User Profile (Each has Real Cognito JWT Token)</h3>
+            <div class="user-cards" id="user-cards-container">
                 <div class="user-card" data-user="student-123" onclick="selectUser('student-123')">
                     <div class="user-avatar teen">👨🎓</div>
                     <div class="user-info">
                         <h4>Alex (Student)</h4>
                         <p>Age: 13 • 8th Grade</p>
                         <p>Industry: Education</p>
+                        <div class="auth-info">
+                            <small><i class="fas fa-shield-alt"></i> Cognito JWT Token (Pre-authenticated)</small>
+                        </div>
                         <span class="user-badge teen">Teen</span>
                     </div>
                 </div>
@@ -38,6 +120,9 @@
                         <h4>Sarah (Teacher)</h4>
                         <p>Age: 39 • Math Teacher</p>
                         <p>Industry: Education</p>
+                        <div class="auth-info">
+                            <small><i class="fas fa-shield-alt"></i> Cognito JWT Token (Pre-authenticated)</small>
+                        </div>
                         <span class="user-badge adult">Adult</span>
                     </div>
                 </div>
@@ -48,6 +133,9 @@
                         <h4>John (Patient)</h4>
                         <p>Age: 49 • Patient</p>
                         <p>Industry: Healthcare</p>
+                        <div class="auth-info">
+                            <small><i class="fas fa-shield-alt"></i> Cognito JWT Token (Pre-authenticated)</small>
+                        </div>
                         <span class="user-badge adult">Adult</span>
                     </div>
                 </div>
@@ -58,6 +146,9 @@
                         <h4>Dr. Smith (Doctor)</h4>
                         <p>Age: 44 • Cardiologist</p>
                         <p>Industry: Healthcare</p>
+                        <div class="auth-info">
+                            <small><i class="fas fa-shield-alt"></i> Cognito JWT Token (Pre-authenticated)</small>
+                        </div>
                         <span class="user-badge adult">Provider</span>
                     </div>
                 </div>
@@ -65,14 +156,15 @@
         </div>
 
         <!-- Chat Interface -->
-        <div class="chat-container">
+        <div class="chat-container" id="chat-container">
             <div class="chat-header">
                 <div class="current-user">
-                    <span id="current-user-name">Select a user to start chatting</span>
+                    <span id="current-user-name">Please login to start chatting</span>
                     <span id="current-user-context"></span>
                 </div>
-                <div class="connection-status">
-                    <span id="connection-status">🔴 Not Connected</span>
+                <div class="auth-status-display">
+                    <div id="connection-status">🔴 Not Authenticated</div>
+                    <div id="cognito-status" class="cognito-auth-status">🔒 Select user to authenticate</div>
                 </div>
             </div>
 
@@ -115,6 +207,50 @@
     </div>
 
     <script src="config.js"></script>
+    <script>
+        function quickLogin(username, password) {
+            console.log('🚀 quickLogin called:', username);
+            const user = window.DEMO_CONFIG.users.find(u => u.id === username && u.password === password);
+            console.log('👤 User found:', user);
+            if (user) {
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('user-selector').style.display = 'block';
+                document.getElementById('chat-container').style.display = 'block';
+                document.getElementById('logged-user').textContent = username;
+                console.log('✅ Login successful');
+            } else {
+                console.log('❌ Login failed');
+            }
+        }
+        
+        // Load users dynamically when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.DEMO_CONFIG && window.DEMO_CONFIG.users) {
+                const userList = document.getElementById('demo-user-list');
+                const userIcons = {student: '👨🎓', teacher: '👩🏫', patient: '👨⚕️', provider: '👨⚕️', child: '🧒', teen: '👦', senior: '👴', college: '👨‍🎓'};
+                
+                console.log('👥 Loading users:', window.DEMO_CONFIG.users);
+                window.DEMO_CONFIG.users.forEach(user => {
+                    const userDiv = document.createElement('div');
+                    userDiv.className = 'demo-user';
+                    userDiv.onclick = () => {
+                        console.log('🖱️ User clicked:', user.id);
+                        quickLogin(user.id, user.password);
+                    };
+                    
+                    const icon = userIcons[user.role] || '👤';
+                    userDiv.innerHTML = `
+                        <span class="user-icon">${icon}</span>
+                        <div class="user-details">
+                            <strong>${user.id}</strong><br>
+                            <small>${user.name}</small>
+                        </div>
+                    `;
+                    userList.appendChild(userDiv);
+                });
+            }
+        });
+    </script>
     <script src="script.js"></script>
 </body>
 </html>
