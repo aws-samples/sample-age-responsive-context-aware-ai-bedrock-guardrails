@@ -395,6 +395,7 @@ This makes it clearer how the same question gets different responses based on us
 
 <img width="3206" height="1896" alt="image" src="https://github.com/user-attachments/assets/9dd3d7b3-acdb-4c8c-ad01-2f63164b0b0b" />
 
+
 #### User Profile: Math Teacher, Age 39
 
 <img width="3206" height="1866" alt="image" src="https://github.com/user-attachments/assets/de397d04-bfcd-44da-a850-fd9324be14c3" />
