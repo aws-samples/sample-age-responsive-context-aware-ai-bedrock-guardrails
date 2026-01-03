@@ -235,6 +235,61 @@ graph TD
 
 ---
 
+## Solution Flow
+
+```mermaid
+flowchart LR
+    U[👤 User] --> W[🌐 Web Demo]
+    W --> C[🔐 Cognito Auth]
+    C --> WAF[🛡️ AWS WAF]
+    WAF --> A[🚪 API Gateway]
+    A --> L[⚡ Lambda]
+    
+    L --> D[(🗄️ DynamoDB<br/>User Profiles)]
+    L --> GS{🛡️ Guardrail<br/>Selection}
+    
+    GS -->|Child User| G1[🛡️ Child Protection<br/>COPPA Compliant]
+    GS -->|Teen User| G2[🛡️ Teen Educational<br/>Age Appropriate]
+    GS -->|Healthcare Pro| G3[🛡️ Healthcare Pro<br/>Clinical Content]
+    GS -->|Healthcare Patient| G4[🛡️ Healthcare Patient<br/>Safety First]
+    GS -->|Adult General| G5[🛡️ Adult General<br/>Standard Protection]
+    
+    G1 --> B[🤖 Bedrock<br/>Claude 3 Sonnet]
+    G2 --> B
+    G3 --> B
+    G4 --> B
+    G5 --> B
+    
+    B --> L2[⚡ Lambda<br/>Response Processing]
+    
+    L2 --> CW[(📊 CloudWatch<br/>Real-time Logs)]
+    L2 --> DA[(🗄️ DynamoDB<br/>Audit Trail)]
+    L2 --> A2[🚪 API Gateway<br/>Response]
+    
+    A2 --> W2[🌐 Web Demo]
+    W2 --> U
+    
+    style GS fill:#fff3e0
+    style G1 fill:#ffebee
+    style G2 fill:#e8f5e8
+    style G3 fill:#e3f2fd
+    style G4 fill:#f3e5f5
+    style G5 fill:#fce4ec
+    style B fill:#fff9c4
+    style L2 fill:#e8f5e8
+```
+
+### **🔄 Key Flow Points:**
+1. **User Authentication** → Cognito JWT tokens
+2. **Security Layer** → WAF protection + API Gateway authorization (REQUEST ONLY)
+3. **Context Analysis** → DynamoDB user profile lookup
+4. **🎯 Core Innovation** → Dynamic guardrail selection based on user context
+5. **AI Safety** → Always-on Bedrock Guardrails (never bypassed)
+6. **Response Processing** → Lambda handles Bedrock response
+7. **3 Parallel Operations** → CloudWatch logging + DynamoDB audit + API Gateway response
+8. **Return Path** → API Gateway → Web Demo → User (Direct response delivery)
+
+
 ##  Quick Deployment
 
 ### 1. Prerequisites
@@ -424,59 +479,6 @@ This script automatically:
 - ✅ Cleans Terraform state files
 - ✅ Removes virtual environment
 
-## Solution Flow
-
-```mermaid
-flowchart LR
-    U[👤 User] --> W[🌐 Web Demo]
-    W --> C[🔐 Cognito Auth]
-    C --> WAF[🛡️ AWS WAF]
-    WAF --> A[🚪 API Gateway]
-    A --> L[⚡ Lambda]
-    
-    L --> D[(🗄️ DynamoDB<br/>User Profiles)]
-    L --> GS{🛡️ Guardrail<br/>Selection}
-    
-    GS -->|Child User| G1[🛡️ Child Protection<br/>COPPA Compliant]
-    GS -->|Teen User| G2[🛡️ Teen Educational<br/>Age Appropriate]
-    GS -->|Healthcare Pro| G3[🛡️ Healthcare Pro<br/>Clinical Content]
-    GS -->|Healthcare Patient| G4[🛡️ Healthcare Patient<br/>Safety First]
-    GS -->|Adult General| G5[🛡️ Adult General<br/>Standard Protection]
-    
-    G1 --> B[🤖 Bedrock<br/>Claude 3 Sonnet]
-    G2 --> B
-    G3 --> B
-    G4 --> B
-    G5 --> B
-    
-    B --> L2[⚡ Lambda<br/>Response Processing]
-    
-    L2 --> CW[(📊 CloudWatch<br/>Real-time Logs)]
-    L2 --> DA[(🗄️ DynamoDB<br/>Audit Trail)]
-    L2 --> A2[🚪 API Gateway<br/>Response]
-    
-    A2 --> W2[🌐 Web Demo]
-    W2 --> U
-    
-    style GS fill:#fff3e0
-    style G1 fill:#ffebee
-    style G2 fill:#e8f5e8
-    style G3 fill:#e3f2fd
-    style G4 fill:#f3e5f5
-    style G5 fill:#fce4ec
-    style B fill:#fff9c4
-    style L2 fill:#e8f5e8
-```
-
-### **🔄 Key Flow Points:**
-1. **User Authentication** → Cognito JWT tokens
-2. **Security Layer** → WAF protection + API Gateway authorization (REQUEST ONLY)
-3. **Context Analysis** → DynamoDB user profile lookup
-4. **🎯 Core Innovation** → Dynamic guardrail selection based on user context
-5. **AI Safety** → Always-on Bedrock Guardrails (never bypassed)
-6. **Response Processing** → Lambda handles Bedrock response
-7. **3 Parallel Operations** → CloudWatch logging + DynamoDB audit + API Gateway response
-8. **Return Path** → API Gateway → Web Demo → User (Direct response delivery)
 
 ### **🚀 Production Integration:**
 3. **Integrate** - Follow [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md) for production setup
