@@ -123,6 +123,7 @@ age-responsive-context-aware-ai-bedrock-guardrails/
 ├── LICENSE
 ├── README.md
 └── TESTING_GUIDE.md
+└── CODE_OF_CONDUCT.md
 ```
 ##  Architecture diagrams
 
