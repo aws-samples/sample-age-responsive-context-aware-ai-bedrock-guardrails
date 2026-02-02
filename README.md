@@ -612,20 +612,34 @@ The following table provides a comprehensive overview of each guardrail's config
 
 ---
 
-## Resources Deployed
+## Resources Deployed & Cost Estimation
 
-| Resource | Purpose | Cost Impact |
-|----------|---------|-------------|
-| **🔐 Cognito User Pool** | Enterprise authentication with JWT tokens | ~$5-15/month |
-| **🛡️ AWS WAF** | Rate limiting + OWASP security rules | ~$5-20/month |
-| **⚡ Lambda Function** | Age-responsive AI processing with security | ~$10-30/month |
-| **🚪 API Gateway** | Secure REST endpoints with authorization | ~$3-15/month |
-| **🗄️ DynamoDB Tables** | User profiles and encrypted audit logging | ~$5-25/month |
-| **🛡️ Bedrock Guardrails (5)** | Specialized content filtering and safety policies | ~$25-100/month |
-| **🔐 KMS Keys** | Encryption for secrets, logs, and data | ~$2-5/month |
-| **📊 CloudWatch Logs** | Security monitoring and debugging | ~$2-10/month |
+The cost of running this solution depends on usage patterns and scale. Below is an estimated monthly cost breakdown for a moderate usage scenario (1,000 API requests per day):
 
-**Total Estimated Cost**: $39-170/month for moderate usage with enterprise security
+### AWS Service Cost Estimates:
+
+| Service | Purpose | Monthly Cost |
+|---------|---------|-------------|
+| **Amazon Bedrock** | Foundation model inference and guardrail processing | $50-200 |
+| **AWS Lambda** | Serverless compute for request processing | $5-15 |
+| **Amazon API Gateway** | REST API requests and data transfer | $3-10 |
+| **Amazon DynamoDB** | User profiles and audit logging (on-demand) | $5-20 |
+| **Amazon Cognito** | User authentication (free tier: 50,000 MAUs) | $0-50 |
+| **AWS WAF** | Web ACL and security rules | $5-15 |
+| **Amazon CloudWatch** | Logs, metrics, and monitoring | $5-10 |
+
+**Estimated Total**: $73-320/month depending on usage volume and model selection
+
+### Cost Optimization Strategies:
+
+- **Cost Tagging**: Implement AWS cost allocation tags on all resources (e.g., `Project:AgeResponsiveAI`, `Environment:Production`, `Team:AI-Platform`) to track expenses by department, project, or cost center
+- **Multi-Account Deployments**: For enterprise deployments across multiple AWS accounts, consider using AWS Organizations with consolidated billing and AWS Cost Explorer for centralized cost visibility
+- **Reserved Capacity**: For predictable workloads, consider Bedrock Provisioned Throughput to reduce inference costs
+- **DynamoDB Optimization**: Use on-demand pricing for variable workloads or provisioned capacity with auto-scaling for predictable patterns
+- **Lambda Optimization**: Right-size memory allocation and use AWS Lambda Power Tuning to optimize cost-performance ratio
+- **CloudWatch Log Retention**: Configure appropriate log retention periods to balance compliance needs with storage costs
+
+**Note**: Actual costs vary based on request volume, model selection, data transfer, and regional pricing. Use the [AWS Pricing Calculator](https://calculator.aws) for customized estimates based on your specific requirements.
 
 ---
 
