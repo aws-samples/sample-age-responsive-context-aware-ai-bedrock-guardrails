@@ -614,8 +614,6 @@ The following table provides a comprehensive overview of each guardrail's config
 
 ## Resources Deployed & Cost Estimation
 
-The cost of running this solution depends on usage patterns and scale. Below is an estimated monthly cost breakdown for a moderate usage scenario (1,000 API requests per day):
-
 ### AWS Service Cost Estimates:
 
 | Service | Purpose | Monthly Cost |
@@ -639,7 +637,6 @@ The cost of running this solution depends on usage patterns and scale. Below is 
 - **Lambda Optimization**: Right-size memory allocation and use AWS Lambda Power Tuning to optimize cost-performance ratio
 - **CloudWatch Log Retention**: Configure appropriate log retention periods to balance compliance needs with storage costs
 
-**Note**: Actual costs vary based on request volume, model selection, data transfer, and regional pricing. Use the [AWS Pricing Calculator](https://calculator.aws) for customized estimates based on your specific requirements.
 
 ---
 
