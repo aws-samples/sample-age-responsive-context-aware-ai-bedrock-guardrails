@@ -639,6 +639,9 @@ Lead Consultant - Amazon Web Services
 
 ### **Guardrail Configuration Details**
 
+<details>
+<summary><b>Click to expand/collapse Guardrail Configuration Table</b></summary>
+
 The following table provides a comprehensive overview of each guardrail's configuration, including content filters, topic restrictions, PII handling, and custom filters:
 
 | Guardrail | Content Filter Strengths (Hate/Insults/Sexual/Violence/Misconduct/Prompt Attack) | Denied Topics | PII Redaction | Custom Regex Filters | Word Filters | Blocked Messages |
@@ -648,5 +651,7 @@ The following table provides a comprehensive overview of each guardrail's config
 | **Healthcare Professional** | NONE/NONE/MEDIUM/LOW/MEDIUM/HIGH | • Patient Privacy Violation (sharing patient information without consent)<br>• Unauthorized Medical Advice (prescribing outside scope of practice) | **BLOCK:** PASSWORD<br>**ANONYMIZE:** ADDRESS, EMAIL, PHONE, NAME, AGE, USERNAME | • Medical record number (MRN) anonymization<br>• Patient ID (PID) anonymization<br>• Social Security Number blocking<br>• Insurance ID anonymization | None | Input: "This request contains content that cannot be processed. Please rephrase your clinical question."<br>Output: "I cannot provide this information due to content policies. Please consult clinical guidelines." |
 | **Healthcare Patient** | HIGH/NONE/MEDIUM/MEDIUM/MEDIUM/HIGH | • Medical Diagnosis (providing specific diagnoses based on symptoms)<br>• Prescription Advice (recommending medications or dosages)<br>• Medical Emergency Advice (emergency medical advice requiring professional intervention) | **BLOCK:** PASSWORD<br>**ANONYMIZE:** ADDRESS, EMAIL, PHONE, NAME, AGE, USERNAME | • Insurance number anonymization<br>• Personal medical condition anonymization | None | Input: "I can't provide medical advice. Please consult with your healthcare provider."<br>Output: "I cannot share medical recommendations. Please speak with a qualified healthcare professional." |
 | **Adult General** | HIGH/NONE/MEDIUM/MEDIUM/HIGH/HIGH | • Harmful Instructions (instructions for illegal or harmful activities)<br>• Illegal Activities (content promoting or instructing illegal activities) | **BLOCK:** PASSWORD, CREDIT_DEBIT_CARD_CVV, CREDIT_DEBIT_CARD_NUMBER<br>**ANONYMIZE:** ADDRESS, EMAIL, PHONE, NAME, USERNAME, DRIVER_ID, LICENSE_PLATE | • Employee ID anonymization<br>• API key blocking | • Managed: PROFANITY | Input: "I can't help with that request. Let's discuss something else."<br>Output: "I can't provide that information. How about we talk about something different?" |
+
+</details>
 
 
