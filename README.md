@@ -127,7 +127,8 @@ age-responsive-context-aware-ai-bedrock-guardrails/
 ```
 ##  Architecture diagrams
 
-<img width="984" height="663" alt="image" src="https://github.com/user-attachments/assets/6455e73a-cfa2-4895-a2a1-3c788180e7ac" />
+<img width="1966" height="1324" alt="image" src="https://github.com/user-attachments/assets/0b582e09-2cec-47c4-886c-45a3cf3849f6" />
+
 
 ---
 
