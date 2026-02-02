@@ -575,6 +575,23 @@ resource "aws_lambda_function" "main" {
 
 ---
 
+### **Guardrail Configuration Details**
+
+<details>
+<summary><b>📋 Click to expand/collapse Guardrail Configuration Table</b></summary>
+
+The following table provides a comprehensive overview of each guardrail's configuration, including content filters, topic restrictions, PII handling, and custom filters:
+
+| Guardrail | Content Filter Strengths (Hate/Insults/Sexual/Violence/Misconduct/Prompt Attack) | Denied Topics | PII Redaction | Custom Regex Filters | Word Filters | Blocked Messages |
+|-----------|---------|---------------|---------------|-------------------------------|--------------|---------------------|
+| **Child Protection (Age < 13)** | HIGH/HIGH/HIGH/HIGH/HIGH/HIGH | • Adult Content (violence, adult themes, scary content, mature topics)<br>• Personal Information Sharing (COPPA compliance) | **BLOCK:** ADDRESS, EMAIL, PHONE, NAME, USERNAME, PASSWORD, DRIVER_ID, LICENSE_PLATE, VEHICLE_IDENTIFICATION_NUMBER, AGE, IP_ADDRESS, MAC_ADDRESS<br>**ANONYMIZE:** URL | • Student ID blocking<br>• Grade level anonymization | • Custom words: kill, weapon, scary, violence<br>• Managed: PROFANITY | Input: "I can't help with that request. Let's talk about something fun and safe!"<br>Output: "I can't share that information. How about we discuss something more appropriate?" |
+| **Teen Educational (Age 13-17)** | HIGH/NONE/HIGH/MEDIUM/HIGH/HIGH | • Self-Harm Prevention (self-harm, suicide methods, dangerous challenges)<br>• Substance Abuse (illegal drugs, underage drinking) | **BLOCK:** PHONE, PASSWORD, CREDIT_DEBIT_CARD_NUMBER, CREDIT_DEBIT_CARD_CVV<br>**ANONYMIZE:** EMAIL | • Student ID anonymization | • Managed: PROFANITY | Input: "I can't help with that request. Let's discuss something educational instead!"<br>Output: "I can't share that information. How about we explore a learning topic?" |
+| **Healthcare Professional** | NONE/NONE/MEDIUM/LOW/MEDIUM/HIGH | • Patient Privacy Violation (sharing patient information without consent)<br>• Unauthorized Medical Advice (prescribing outside scope of practice) | **BLOCK:** PASSWORD<br>**ANONYMIZE:** ADDRESS, EMAIL, PHONE, NAME, AGE, USERNAME | • Medical record number (MRN) anonymization<br>• Patient ID (PID) anonymization<br>• Social Security Number blocking<br>• Insurance ID anonymization | None | Input: "This request contains content that cannot be processed. Please rephrase your clinical question."<br>Output: "I cannot provide this information due to content policies. Please consult clinical guidelines." |
+| **Healthcare Patient** | HIGH/NONE/MEDIUM/MEDIUM/MEDIUM/HIGH | • Medical Diagnosis (providing specific diagnoses based on symptoms)<br>• Prescription Advice (recommending medications or dosages)<br>• Medical Emergency Advice (emergency medical advice requiring professional intervention) | **BLOCK:** PASSWORD<br>**ANONYMIZE:** ADDRESS, EMAIL, PHONE, NAME, AGE, USERNAME | • Insurance number anonymization<br>• Personal medical condition anonymization | None | Input: "I can't provide medical advice. Please consult with your healthcare provider."<br>Output: "I cannot share medical recommendations. Please speak with a qualified healthcare professional." |
+| **Adult General** | HIGH/NONE/MEDIUM/MEDIUM/HIGH/HIGH | • Harmful Instructions (instructions for illegal or harmful activities)<br>• Illegal Activities (content promoting or instructing illegal activities) | **BLOCK:** PASSWORD, CREDIT_DEBIT_CARD_CVV, CREDIT_DEBIT_CARD_NUMBER<br>**ANONYMIZE:** ADDRESS, EMAIL, PHONE, NAME, USERNAME, DRIVER_ID, LICENSE_PLATE | • Employee ID anonymization<br>• API key blocking | • Managed: PROFANITY | Input: "I can't help with that request. Let's discuss something else."<br>Output: "I can't provide that information. How about we talk about something different?" |
+
+</details>
+---
 
 ## Resources Deployed
 
