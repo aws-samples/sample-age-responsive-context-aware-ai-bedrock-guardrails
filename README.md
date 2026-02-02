@@ -136,42 +136,40 @@ age-responsive-context-aware-ai-bedrock-guardrails/
 
 ```mermaid
 graph TD
-    A[👤 User Request] --> B[🚪 API Gateway]
-    B --> C[⚡ Lambda Function]
-    C --> D[🔍 User Context Analysis]
+    A[👤 User Request<br/>• User Query<br/>• JWT Token<br/>• User ID] --> B[🔐 Authentication & Authorization]
+    B --> C[🔍 User Context Analysis<br/>• Age: 13, 17, 35, etc.<br/>• Role: Student, Teacher, Patient, Doctor<br/>• Industry: Education, Healthcare]
     
-    D --> E{Guardrail Selection Engine}
+    C --> D{Context-Based Guardrail Selection}
     
-    E -->|Child User| F[🛡️ Child Protection Guardrail<br/>• Maximum PII Blocking<br/>• Violence/Adult Content Blocked<br/>• Custom Word Filtering]
+    D -->|Age < 13| E[🛡️ Child Protection Policy<br/>• Maximum PII Blocking<br/>• Violence/Adult Content Blocked<br/>• Custom Word Filtering]
     
-    E -->|Teen User| G[🛡️ Teen Educational Guardrail<br/>• Balanced Protection<br/>• Self-Harm Prevention<br/>• Educational Violence Allowed]
+    D -->|Age 13-17| F[🛡️ Teen Educational Policy<br/>• Balanced Protection<br/>• Self-Harm Prevention<br/>• Educational Violence Allowed]
     
-    E -->|Healthcare Professional| H[🛡️ Healthcare Professional Guardrail<br/>• HIPAA Compliance<br/>• Medical Record Anonymization<br/>• Clinical Guidelines Allowed]
+    D -->|Healthcare Professional| G[🛡️ Healthcare Professional Policy<br/>• HIPAA Compliance<br/>• Medical Record Anonymization<br/>• Clinical Guidelines Allowed]
     
-    E -->|Healthcare Patient| I[🛡️ Healthcare Patient Guardrail<br/>• Medical Diagnosis Blocked<br/>• Prescription Advice Blocked<br/>• General Health Education Allowed]
+    D -->|Healthcare Patient| H[🛡️ Healthcare Patient Policy<br/>• Medical Diagnosis Blocked<br/>• Prescription Advice Blocked<br/>• General Health Education Allowed]
     
-    F --> J[🤖 Bedrock Claude 3 Sonnet]
-    G --> J
-    H --> J
-    I --> J
+    E --> I[🤖 Foundation Model Invocation<br/>with Guardrail Protection]
+    F --> I
+    G --> I
+    H --> I
     
-    J --> K{Guardrail Content Check}
+    I --> J{Content Safety Validation}
     
-    K -->|✅ Content Approved| L[📤 Safe Response]
-    K -->|❌ Content Blocked| M[🚫 Context-Aware Violation Message]
+    J -->|✅ Content Approved| K[📤 Context-Adapted Response]
+    J -->|❌ Content Blocked| L[🚫 Safety Message]
     
-    L --> N[📊 Guardrail Analytics Logging]
-    M --> O[📊 Violation Compliance Tracking]
+    K --> M[📊 Audit & Compliance Logging]
+    L --> M
     
-    N --> P[👤 User Receives Protected Response]
-    O --> P
+    M --> N[👤 User Receives Protected Response]
     
-    style E fill:#fff3e0
-    style F fill:#ffebee
-    style G fill:#e8f5e8
-    style H fill:#e3f2fd
-    style I fill:#f3e5f5
-    style K fill:#fff9c4
+    style D fill:#fff3e0
+    style E fill:#ffebee
+    style F fill:#e8f5e8
+    style G fill:#e3f2fd
+    style H fill:#f3e5f5
+    style J fill:#fff9c4
 ```
 
 ## 🔄 How the Solution Works
@@ -217,7 +215,7 @@ graph TD
 - **Always-On Safety**: Every request MUST go through a guardrail - no bypass possible
 
 ### **8. Bedrock AI Processing with Guardrail Protection**
-- **Model Invocation**: Lambda calls Claude 3 Sonnet via Amazon Bedrock
+- **Model Invocation**: Lambda calls Amazon Bedrock foundation model
 - **Guardrail Application**: Selected guardrail filters both input and output
 - **Content Safety**: Custom policies, topic restrictions, and PII detection applied
 - **Response Generation**: AI generates context-appropriate, safety-filtered response
@@ -255,7 +253,7 @@ flowchart LR
     GS -->|Healthcare Patient| G4[🛡️ Healthcare Patient<br/>Safety First]
     GS -->|Adult General| G5[🛡️ Adult General<br/>Standard Protection]
     
-    G1 --> B[🤖 Bedrock<br/>Claude 3 Sonnet]
+    G1 --> B[🤖 Bedrock<br/>Foundation Model]
     G2 --> B
     G3 --> B
     G4 --> B
@@ -297,17 +295,16 @@ flowchart LR
 
 #### AWS Account Setup
 ```bash
-# Enable Amazon Bedrock model access:
-# 1. Go to AWS Console → Amazon Bedrock → Model Access
-# 2. Request access to Claude 3 Sonnet model
-# 3. Wait for approval (usually instant)
-
 # Required AWS Permissions:
-# Your AWS user/role needs permissions for:
+# Your AWS user/role needs IAM permissions for:
+# - Amazon Bedrock (model invocation and guardrail management)
 # - Lambda (create functions)
 # - Cognito (user pools and identity providers)
 # - WAF (web ACLs and rules)
-# - Secrets Manager, DynamoDB, Bedrock, CloudWatch
+# - API Gateway (REST API management)
+# - DynamoDB (table operations)
+# - CloudWatch (logging and monitoring)
+# - KMS (encryption key management)
 ```
 
 #### Required Tools
@@ -331,15 +328,10 @@ aws configure        # AWS CLI with appropriate permissions
 # This is configured in terraform/examples/production/terraform.tfvars
 
 # To change deployment region, edit terraform/examples/production/terraform.tfvars:
-# region = "us-east-1"  # Change this if needed
-
-# Supported Bedrock Regions (where Claude 3 Sonnet is available):
-# - us-east-1 (N. Virginia) - Default
-# - us-west-2 (Oregon)
-# - eu-west-1 (Ireland)
+# region = "us-east-1"  # Change this if needed based on your Bedrock region availability
 
 # Note: Ensure your AWS CLI region matches your chosen deployment region
-# and that Claude 3 Sonnet model access is enabled in that region
+# and that Amazon Bedrock is available in your selected region
 ```
 
 ### 2. Clone & Setup
