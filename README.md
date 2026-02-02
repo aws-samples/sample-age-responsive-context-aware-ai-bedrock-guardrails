@@ -640,7 +640,7 @@ Lead Consultant - Amazon Web Services
 ### **Guardrail Configuration Details**
 
 <details>
-<summary><b>Click to expand/collapse Guardrail Configuration Table</b></summary>
+<summary><b>📋 Click to expand/collapse Guardrail Configuration Table</b></summary>
 
 The following table provides a comprehensive overview of each guardrail's configuration, including content filters, topic restrictions, PII handling, and custom filters:
 
@@ -653,5 +653,3 @@ The following table provides a comprehensive overview of each guardrail's config
 | **Adult General** | HIGH/NONE/MEDIUM/MEDIUM/HIGH/HIGH | • Harmful Instructions (instructions for illegal or harmful activities)<br>• Illegal Activities (content promoting or instructing illegal activities) | **BLOCK:** PASSWORD, CREDIT_DEBIT_CARD_CVV, CREDIT_DEBIT_CARD_NUMBER<br>**ANONYMIZE:** ADDRESS, EMAIL, PHONE, NAME, USERNAME, DRIVER_ID, LICENSE_PLATE | • Employee ID anonymization<br>• API key blocking | • Managed: PROFANITY | Input: "I can't help with that request. Let's discuss something else."<br>Output: "I can't provide that information. How about we talk about something different?" |
 
 </details>
-
-
