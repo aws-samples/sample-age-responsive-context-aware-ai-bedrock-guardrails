@@ -38,7 +38,8 @@ cd web-demo
 ---
 Refer to the screenshots below.
 
-<img width="3042" height="1922" alt="image" src="https://github.com/user-attachments/assets/0ca11433-1b6b-4cbd-b4b3-287d57421663" />
+<img width="3042" height="1922" alt="image" src="https://github.com/user-attachments/assets/191bb5cf-cf6e-47f3-a3d4-88b78bd3df47" />
+
 
 
 ## 🧪 Interactive Testing Scenarios
