@@ -441,12 +441,12 @@ This makes it clearer how the same question gets different responses based on us
 
 #### User Profile: Student, Age 13
 
-<img width="3206" height="1896" alt="image" src="https://github.com/user-attachments/assets/9dd3d7b3-acdb-4c8c-ad01-2f63164b0b0b" />
+<img width="2354" height="1982" alt="image" src="https://github.com/user-attachments/assets/339e048e-a8b3-46b0-92fc-d46f1d30d501" />
 
 
 #### User Profile: Math Teacher, Age 39
 
-<img width="3206" height="1866" alt="image" src="https://github.com/user-attachments/assets/de397d04-bfcd-44da-a850-fd9324be14c3" />
+<img width="2102" height="1574" alt="image" src="https://github.com/user-attachments/assets/1ef7bdaa-f5a1-4fe6-bca7-c02022520d8b" />
 
 
 ### 6. Stop Demo
